@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/title"
+    android:orientation="vertical"
+    android:fitsSystemWindows="true"
+    android:id="@+id/linear_layout_parent">
+
+
+    <!--android:clickable="true"-->
+    <!--android:focusable="true"-->
+    <!--android:focusableInTouchMode="true"-->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingRight="10dp">
+
+        <ImageView
+            android:id="@+id/img_title_back"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginLeft="10dp"
+            android:src="@mipmap/img_back"
+            android:layout_marginRight="10dp"
+            android:contentDescription="TODO" />
+
+
+        <EditText
+            android:id="@+id/edt_title_search"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/white"
+            android:theme="@style/SearchEditText"
+            android:maxLines="1"
+            android:inputType="text"
+            android:hint="请输入歌名或歌手"/>
+
+        <ImageView
+            android:id="@+id/img_title_clear"
+            android:layout_width="15dp"
+            android:layout_height="15dp"
+            android:layout_marginRight="10dp"
+            android:src="@mipmap/img_close"
+            android:visibility="gone"/>
+
+        <!--<ImageView-->
+            <!--android:id="@+id/img_title_menu"-->
+            <!--android:layout_width="30dp"-->
+            <!--android:layout_height="30dp"-->
+            <!--android:layout_marginRight="10dp"-->
+            <!--android:src="@mipmap/img_title_menu" />-->
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/white"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_no_result_hint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="未找到相关内容"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="50dp"
+            android:visibility="gone"/>
+        <ListView
+            android:id="@+id/lv_local_search"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:dividerHeight="0.5dp"/>
+
+        <com.musicplayer.ui.widget.PlayBarLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+</LinearLayout>

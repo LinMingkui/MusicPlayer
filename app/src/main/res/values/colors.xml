@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#008577</color>
+    <color name="colorPrimaryDark">#00574B</color>
+    <color name="colorAccent">#D81B60</color>
+    <color name="white">#FFFFFF</color>
+    <!--标题栏颜色-->
+    <color name="title">#2196F3</color>
+
+    <!--指示器颜色-->
+    <!--<color name="indicator">#0073FF</color>-->
+
+    <!--首页卡片颜色-->
+    <color name="home_card">#FFFFFF</color>
+
+    <!--首页面背景-->
+    <color name="home_background">#F5F5F5F5</color>
+
+    <!--播放页面背景-->
+    <color name="play_background">#E6FFFFFF</color>
+
+    <!--播放相关图标82B1FF-->
+    <color name="play_icon">#2196F3</color>
+
+    <!--当前歌词82B1FF-->
+    <color name="current_lrc">#2196F3</color>
+
+    <!--播放页seekbar进度-->
+    <color name="play_seekbar_progress">#2196F3</color>
+
+    <!--播放栏progressbar进度-->
+    <color name="playbar_progressbar_progress">#2196F3</color>
+
+
+
+
+    <!--透明-->
+    <!--<color name="clear">#004a9bfd</color>-->
+
+    <!--灰色-->
+    <color name="gray">#F1F1F1</color>
+
+    <!--通知图标颜色-->
+    <color name="shallow_gray">#616161</color>
+
+    <!--5.0-6.0播放界面状态栏颜色-->
+    <color name="notification">#33000000</color>
+
+    <!--黑色-->
+    <color name="black">#393939</color>
+
+    <!--深色，播放栏歌手字体颜色-->
+    <color name="dark_gray">#606060</color>
+
+    <!--hint字体颜色-->
+    <color name="hint">#95545D66</color>
+
+
+</resources>

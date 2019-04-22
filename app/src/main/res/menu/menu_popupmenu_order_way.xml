@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/item_base_title"
+        android:title="按歌曲名"
+        android:checkable="true"/>
+    <item
+        android:id="@+id/item_base_singer"
+        android:title="按歌手名"
+        android:checkable="true"/>
+    <item
+        android:id="@+id/item_base_add_time"
+        android:title="按添加时间"
+        android:checkable="true"/>
+</menu>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/fl_lyric"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    tools:context=".ui.fragment.LyricFragment">
+
+    <com.musicplayer.ui.widget.LrcView
+        android:id="@+id/lrc_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginLeft="30dp"
+        android:layout_marginRight="30dp"
+        android:clickable="false"
+        app:indicatorStartEndMargin="-10dp"
+        app:lrcTextSize="18sp"
+        app:indicatorTextColor="@color/colorAccent"
+        app:lrcCurrentTextColor="@color/current_lrc"
+        app:playIconHeight="30dp"
+        app:playIconWidth="30dp"/>
+</FrameLayout>

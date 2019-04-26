@@ -30,6 +30,7 @@ public class MethodUtils {
     //添加音乐
     public static void insertSong(SQLiteDatabase db, String table, Cursor cursor, boolean setTime) {
         ContentValues values = new ContentValues();
+
         values.put(StaticVariate.title, cursor.getString(cursor.getColumnIndex(StaticVariate.title)));
         values.put(StaticVariate.singer, cursor.getString(cursor.getColumnIndex(StaticVariate.singer)));
         values.put(StaticVariate.fileUrl, cursor.getString(cursor.getColumnIndex(StaticVariate.fileUrl)));

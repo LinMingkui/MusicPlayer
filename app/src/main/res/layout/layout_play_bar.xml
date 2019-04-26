@@ -58,7 +58,7 @@
                 android:focusableInTouchMode="true"
                 android:singleLine="true"
                 android:text="用心聆听"
-                android:textColor="@color/black"
+                android:textColor="@color/main_text"
                 android:textSize="16dp" />
 
             <TextView

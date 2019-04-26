@@ -51,7 +51,7 @@
                             android:focusable="true"
                             android:focusableInTouchMode="true"
                             android:src="@mipmap/img_local_song"
-                            android:tint="@color/shallow_gray" />
+                            android:tint="@color/title" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -64,8 +64,8 @@
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="center_vertical"
                                 android:text="本地音乐"
-                                android:textColor="@color/shallow_gray"
-                                android:textSize="25sp" />
+                                android:textColor="@color/main_text"
+                                android:textSize="20sp" />
 
                             <TextView
                                 android:id="@+id/text_local_song_number"
@@ -73,7 +73,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="center_vertical"
                                 android:text="0首"
-                                android:textColor="@color/shallow_gray"
+                                android:textColor="@color/sub_text"
                                 android:textSize="13sp" />
                         </LinearLayout>
 
@@ -100,7 +100,7 @@
                             android:layout_gravity="center_vertical"
                             android:layout_margin="10dp"
                             android:src="@mipmap/img_download_song"
-                            android:tint="@color/shallow_gray" />
+                            android:tint="@color/title" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -113,15 +113,15 @@
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="center_vertical"
                                 android:text="下载管理"
-                                android:textColor="@color/shallow_gray"
-                                android:textSize="25sp" />
+                                android:textColor="@color/main_text"
+                                android:textSize="20sp" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="center_vertical"
                                 android:text="0首"
-                                android:textColor="@color/shallow_gray"
+                                android:textColor="@color/sub_text"
                                 android:textSize="13sp" />
                         </LinearLayout>
                     </LinearLayout>
@@ -156,7 +156,7 @@
                             android:layout_gravity="center_vertical"
                             android:layout_margin="10dp"
                             android:src="@mipmap/img_favorite"
-                            android:tint="@color/shallow_gray" />
+                            android:tint="@color/title" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -169,8 +169,8 @@
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="center_vertical"
                                 android:text="我的收藏"
-                                android:textColor="@color/shallow_gray"
-                                android:textSize="25sp" />
+                                android:textColor="@color/main_text"
+                                android:textSize="20sp" />
 
                             <TextView
                                 android:id="@+id/text_favorite_song_number"
@@ -178,7 +178,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="center_vertical"
                                 android:text="0首"
-                                android:textColor="@color/shallow_gray"
+                                android:textColor="@color/sub_text"
                                 android:textSize="13sp" />
                         </LinearLayout>
 
@@ -205,7 +205,7 @@
                             android:layout_gravity="center_vertical"
                             android:layout_margin="10dp"
                             android:src="@mipmap/img_recently"
-                            android:tint="@color/shallow_gray" />
+                            android:tint="@color/title" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -218,8 +218,8 @@
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="center_vertical"
                                 android:text="最近播放"
-                                android:textColor="@color/shallow_gray"
-                                android:textSize="25sp" />
+                                android:textColor="@color/main_text"
+                                android:textSize="20sp" />
 
                             <TextView
                                 android:id="@+id/text_recently_song_number"
@@ -227,7 +227,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="center_vertical"
                                 android:text="0首"
-                                android:textColor="@color/shallow_gray"
+                                android:textColor="@color/sub_text"
                                 android:textSize="13sp" />
                         </LinearLayout>
                     </LinearLayout>
@@ -262,7 +262,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="我的歌单"
-                            android:textColor="@color/black"
+                            android:textColor="@color/main_text"
                             android:textSize="16sp" />
 
                         <ImageView
@@ -270,7 +270,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_alignParentEnd="true"
-                            android:src="@drawable/ic_expand_less" />
+                            android:src="@drawable/ic_expand_less"
+                            android:tint="@color/title"/>
                     </RelativeLayout>
 
                     <!--歌单-->
@@ -304,16 +305,15 @@
                     <ImageView
                         android:layout_width="20dp"
                         android:layout_height="20dp"
-                        android:layout_gravity="center"
                         android:src="@mipmap/img_add_song_menu"
-                        android:tint="@color/shallow_gray" />
+                        android:tint="@color/title" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginLeft="10dp"
                         android:text="创建歌单"
-                        android:textColor="@color/shallow_gray"
+                        android:textColor="@color/main_text"
                         android:textSize="16sp" />
 
                 </LinearLayout>

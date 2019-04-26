@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--首页TabLayout字体大小-->
+    <dimen name="home_tablayout_text_size">18sp</dimen>
+    <!--搜索界面TabLayout字体大小-->
+    <dimen name="search_tablayout_text_size">16sp</dimen>
+</resources>

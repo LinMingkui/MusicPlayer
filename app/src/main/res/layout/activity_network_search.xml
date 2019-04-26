@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/linear_layout_parent"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/title"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
+
+
+    <!--android:clickable="true"-->
+    <!--android:focusable="true"-->
+    <!--android:focusableInTouchMode="true"-->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingRight="10dp">
+
+        <ImageView
+            android:id="@+id/img_title_back"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            android:src="@mipmap/img_back"
+            android:tint="@color/white" />
+
+        <EditText
+            android:id="@+id/edt_title_search"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="请输入歌名或歌手"
+            android:inputType="text"
+            android:maxLines="1"
+            android:imeOptions="actionDone"
+            android:textColor="@color/white"
+            android:textColorHint="@color/hint"
+            android:theme="@style/SearchEditText" />
+
+        <ImageView
+            android:id="@+id/img_search"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:layout_marginRight="10dp"
+            android:src="@drawable/ic_search"
+            android:tint="@color/white"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="3dp"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp">
+
+        <android.support.design.widget.TabLayout
+            android:id="@+id/tab_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:tabIndicatorColor="@color/white"
+            app:tabSelectedTextColor="@color/white"
+            app:tabTextAppearance="@style/SearchTabLayoutTextStyle"
+            app:tabTextColor="@color/hint">
+
+            <android.support.design.widget.TabItem
+                android:id="@+id/tab_item_qq"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="QQ音乐" />
+
+            <android.support.design.widget.TabItem
+                android:id="@+id/tab_item_kg"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="酷狗音乐" />
+
+            <android.support.design.widget.TabItem
+                android:id="@+id/tab_item_wyy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="网易云音乐" />
+        </android.support.design.widget.TabLayout>
+    </LinearLayout>
+
+    <android.support.v4.view.ViewPager
+        android:id="@+id/view_pager"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/white">
+
+    </android.support.v4.view.ViewPager>
+
+
+    <com.musicplayer.ui.widget.PlayBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="60dp" />
+</LinearLayout>

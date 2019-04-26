@@ -181,6 +181,8 @@ public class MyFragment extends Fragment implements View.OnClickListener {
             //创建歌单
             case R.id.linear_layout_add_song_menu:
                 addSongMenuDialog();
+//                AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+//                builder.
                 break;
             case R.id.img_expand:
             case R.id.rl_song_menu:
@@ -277,7 +279,6 @@ public class MyFragment extends Fragment implements View.OnClickListener {
         builder.setView(viewAddSongMenuDialog);
         builder.create();
         final AlertDialog dialog = builder.show();
-
         final EditText editSongMenuName = viewAddSongMenuDialog.
                 findViewById(R.id.edit_song_menu_name);
         Button btnOK = viewAddSongMenuDialog.findViewById(R.id.btn_ok);

@@ -94,12 +94,11 @@ public class SongListAdapter extends BaseAdapter {
             holder.textSinger = convertView.findViewById(R.id.text_song_singer);
             holder.textSongPosition = convertView.findViewById(R.id.text_song_position);
             holder.imgPlaying = convertView.findViewById(R.id.img_playing);
-            holder.imgSongListMenu = convertView.findViewById(R.id.img_song_list_menu1);
+            holder.imgSongListMenu = convertView.findViewById(R.id.img_song_list_menu);
             convertView.setTag(holder);
         } else {
             holder = (ViewHolder) convertView.getTag();
         }
-
         if (cursor == null && song != null) {
             if ((playPosition == position) && playTable.equals(table)) {
                 holder.imgPlaying.setVisibility(View.VISIBLE);

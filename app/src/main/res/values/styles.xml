@@ -15,7 +15,7 @@
         <!--Android 5.x开始需要把颜色设置透明，否则导航栏会呈现系统默认的浅灰色-->
         <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
-
+    <!--搜索输入框-->
     <style name="SearchEditText" parent="Theme.AppCompat.Light">
         <item name="colorControlNormal">@color/hint</item>
         <item name="colorControlActivated">@color/white</item>
@@ -33,5 +33,19 @@
         <item name="android:progressDrawable">@drawable/seekbar_progress_volume</item>
         <!--<item name="android:thumb">@drawable/seekbar_thumb_play</item>-->
         <item name="android:focusable">true</item>
+    </style>
+
+    <!--添加歌单输入框-->
+    <style name="AddSongMenuEditText" parent="Theme.AppCompat.Light">
+        <item name="colorControlNormal">@color/title</item>
+        <item name="colorControlActivated">@color/title</item>
+    </style>
+    <!--首页TabLayout字体大小-->
+    <style name="HomeTabLayoutTextStyle">
+        <item name="android:textSize">@dimen/home_tablayout_text_size</item>
+    </style>
+    <!--搜索界面TabLayout字体大小-->
+    <style name="SearchTabLayoutTextStyle">
+        <item name="android:textSize">@dimen/search_tablayout_text_size</item>
     </style>
 </resources>

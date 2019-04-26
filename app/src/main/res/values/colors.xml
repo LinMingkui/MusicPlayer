@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#008577</color>
-    <color name="colorPrimaryDark">#00574B</color>
+    <!--<color name="colorPrimary">#008577</color>-->
+    <!--<color name="colorPrimaryDark">#00574B</color>-->
+    <!--<color name="colorAccent">#D81B60</color>-->
+    <color name="colorPrimary">#2196F3</color>
+    <color name="colorPrimaryDark">#2196F3</color>
     <color name="colorAccent">#D81B60</color>
     <color name="white">#FFFFFF</color>
     <!--标题栏颜色-->
@@ -31,8 +34,11 @@
     <!--播放栏progressbar进度-->
     <color name="playbar_progressbar_progress">#2196F3</color>
 
+    <!--主文字颜色-->
+    <color name="main_text">#393939</color>
 
-
+    <!--副文字颜色-->
+    <color name="sub_text">#616161</color>
 
     <!--透明-->
     <!--<color name="clear">#004a9bfd</color>-->
@@ -53,7 +59,7 @@
     <color name="dark_gray">#606060</color>
 
     <!--hint字体颜色-->
-    <color name="hint">#95545D66</color>
+    <color name="hint">#E0E0E0</color>
 
 
 </resources>

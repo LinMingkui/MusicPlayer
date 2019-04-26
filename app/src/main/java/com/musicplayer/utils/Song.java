@@ -12,6 +12,15 @@ public class Song {
     private String size;
     private String fileUrl;
 
+    private String QQSongMid;
+
+    public String getQQSongMid() {
+        return QQSongMid;
+    }
+    public void setQQSongMid(String QQSongMid) {
+        this.QQSongMid = QQSongMid;
+    }
+
     public String getFileName() {
         return fileName;
     }

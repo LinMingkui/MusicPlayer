@@ -77,10 +77,10 @@
 
         <ImageView
             android:id="@+id/img_close"
-            android:layout_width="13dp"
-            android:layout_height="13dp"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
             android:layout_marginEnd="10dp"
-            android:src="@mipmap/img_close"
+            android:src="@drawable/ic_close"
             android:tint="@color/shallow_gray" />
     </LinearLayout>
 </LinearLayout>

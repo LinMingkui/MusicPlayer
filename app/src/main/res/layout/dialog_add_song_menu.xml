@@ -3,48 +3,53 @@
     android:id="@+id/linear_layout_dialog"
     android:layout_width="250dp"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
+    android:background="@color/white"
     android:gravity="center_horizontal"
-    android:paddingTop="10dp"
-    android:background="@color/white">
+    android:orientation="vertical"
+    android:paddingTop="10dp">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="创建歌单"
-        android:textSize="20sp"
-        android:textColor="@color/black"/>
+        android:textColor="@color/black"
+        android:textSize="20sp" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
         android:orientation="horizontal"
         android:paddingLeft="20dp"
-        android:paddingRight="20dp"
-        android:layout_marginTop="10dp">
+        android:paddingRight="20dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="歌单名："
-            android:textSize="18sp"
-            android:textColor="@color/black"/>
+            android:textColor="@color/black"
+            android:textSize="18sp" />
+
         <EditText
             android:id="@+id/edit_song_menu_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="text"
-            android:maxLines="1"/>
+            android:theme="@style/AddSongMenuEditText"/>
+            android:maxLines="1" />
 
     </LinearLayout>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@color/gray"/>
+        android:background="@color/gray" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
+
         <Button
             android:id="@+id/btn_ok"
             android:layout_width="match_parent"
@@ -52,11 +57,13 @@
             android:layout_weight="1"
             android:background="@drawable/bg_add_song_menu_dialog_button"
             android:text="确定"
-            android:textSize="18dp"/>
+            android:textSize="18dp" />
+
         <LinearLayout
             android:layout_width="1dp"
             android:layout_height="match_parent"
-            android:background="@color/gray"/>
+            android:background="@color/gray" />
+
         <Button
             android:id="@+id/btn_cancel"
             android:layout_width="match_parent"
@@ -64,6 +71,6 @@
             android:layout_weight="1"
             android:background="@drawable/bg_add_song_menu_dialog_button"
             android:text="取消"
-            android:textSize="18dp"/>
+            android:textSize="18dp" />
     </LinearLayout>
 </LinearLayout>

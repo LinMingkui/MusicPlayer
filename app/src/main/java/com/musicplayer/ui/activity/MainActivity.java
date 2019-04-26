@@ -2,9 +2,11 @@ package com.musicplayer.ui.activity;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteDatabase;
+import android.support.design.widget.TabLayout;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -25,6 +27,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.musicplayer.R;
+import com.musicplayer.adapter.TabAdapter;
 import com.musicplayer.database.DataBase;
 import com.musicplayer.ui.fragment.DiscoverFragment;
 import com.musicplayer.ui.fragment.MyFragment;
@@ -48,18 +51,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     private LinearLayout linearLayoutExit;
     private ImageView imgMenu, imgSearch;
-
-    private TextView tvMyMusic, tvSongLibrary;
-
+    private TabLayout tabLayout;
     private ViewPager viewPager;
-    private ImageView imgIndicator;
     private ArrayList<Fragment> fragmentArrayList;
-    private FragmentManager fragmentManager;
-    //指示器宽度
-    private int bmpW;
-    private int pageIndex = 0;
-    private int offset;
-    private Animation animation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,16 +68,11 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         }
         init();
         setOnClickListener();
-
-        viewPager.addOnPageChangeListener(new MyOnPageChangeListener());
-
-
     }
 
     private void setOnClickListener() {
         imgMenu.setOnClickListener(this);
-        tvMyMusic.setOnClickListener(this);
-        tvSongLibrary.setOnClickListener(this);
+        imgSearch.setOnClickListener(this);
         linearLayoutExit.setOnClickListener(this);
     }
 
@@ -91,37 +80,19 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         mainDrawerLayout = findViewById(R.id.drawer_layout_main);
         linearLayoutExit = findViewById(R.id.ll_exit);
 
+        tabLayout = findViewById(R.id.tab_layout);
         viewPager = findViewById(R.id.view_pager);
-        tvMyMusic = findViewById(R.id.tv_my_music);
-        tvSongLibrary = findViewById(R.id.tv_song_library);
+
         imgMenu = findViewById(R.id.img_title_left_menu);
-        imgIndicator = findViewById(R.id.img_indicator);
+        imgSearch = findViewById(R.id.img_search);
 
         //添加fragment
         fragmentArrayList = new ArrayList<>();
         fragmentArrayList.add(new MyFragment());
         fragmentArrayList.add(new DiscoverFragment());
-        fragmentManager = getSupportFragmentManager();
+        viewPager.setAdapter(new TabAdapter(getSupportFragmentManager(), fragmentArrayList,new String[]{"我的","乐库"}));
+        tabLayout.setupWithViewPager(viewPager);
 
-        //指示器宽度为屏幕宽度的1/4
-        bmpW = (getDbWidth(MainActivity.this) / 4);
-
-        //设置动画图片宽度
-        ViewGroup.LayoutParams para;
-        para = imgIndicator.getLayoutParams();
-        para.width = bmpW;
-        imgIndicator.setLayoutParams(para);
-
-        //把指示器放在“我的”下面
-        animation = new TranslateAnimation(0, bmpW, 0, 0);
-        animation.setFillAfter(true);// true:图片停在动画结束位置
-        animation.setDuration(0);
-        imgIndicator.startAnimation(animation);
-
-        viewPager.setAdapter(new MFragmentPagerAdapter(fragmentManager, fragmentArrayList));
-        viewPager.setOffscreenPageLimit(1);
-        //显示第一个fragment
-        viewPager.setCurrentItem(0);
     }
 
 
@@ -131,90 +102,13 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             case R.id.img_title_left_menu:
                 mainDrawerLayout.openDrawer(Gravity.START);
                 break;
-            case R.id.tv_my_music:
-                viewPager.setCurrentItem(0);
-                break;
-            case R.id.tv_song_library:
-                viewPager.setCurrentItem(1);
+            case R.id.img_search:
+                Intent intent = new Intent(MainActivity.this,NetworkSearchActivity.class);
+                startActivity(intent);
                 break;
             case R.id.ll_exit:
                 MyApplication.getInstance().AppExit();
                 break;
-        }
-    }
-
-
-    //ViewPage滑动事件
-    private class MyOnPageChangeListener implements ViewPager.OnPageChangeListener {
-        @Override
-        public void onPageScrolled(int i, float v, int i1) {
-//            Log.e(TAG, "i = " + i);
-//            Log.e(TAG, "v = " + v);
-//            Log.e(TAG, "i1 = " + i1);
-//            if (v != 0) {
-//                if (pageIndex == 0) {
-//                    animation = new TranslateAnimation(offset,
-//                            offset + (int) (v * bmpW), 0, 0);
-//                    offset = offset + (int) (v * bmpW);
-//                }
-//                animation.setFillAfter(true);// true:图片停在动画结束位置
-//                animation.setDuration(300);
-//                imgIndicator.startAnimation(animation);
-//            }
-        }
-
-        @Override
-        public void onPageScrollStateChanged(int i) {
-        }
-
-        @Override
-        public void onPageSelected(int i) {
-            switch (i) {
-                //当前为页卡1
-                case 0:
-                    animation = new TranslateAnimation(2 * bmpW, bmpW, 0, 0);
-                    tvMyMusic.setTextColor(getResources().getColor(R.color.white));
-                    tvSongLibrary.setTextColor(getResources().getColor(R.color.gray));
-                    break;
-                //当前为页卡2
-                case 1:
-                    animation = new TranslateAnimation(bmpW, 2 * bmpW, 0, 0);
-                    tvMyMusic.setTextColor(getResources().getColor(R.color.gray));
-                    tvSongLibrary.setTextColor(getResources().getColor(R.color.white));
-                    break;
-            }
-            animation.setFillAfter(true);// true:图片停在动画结束位置
-            animation.setDuration(300);
-            imgIndicator.startAnimation(animation);
-            pageIndex = i;
-        }
-
-    }
-
-    public class MFragmentPagerAdapter extends FragmentPagerAdapter {
-
-        //存放Fragment的数组
-        private ArrayList<Fragment> fragmentsList;
-
-        public MFragmentPagerAdapter(FragmentManager fm, ArrayList<Fragment> fragmentsList) {
-            super(fm);
-            this.fragmentsList = fragmentsList;
-        }
-
-        @Override
-        public Fragment getItem(int position) {
-
-            return fragmentsList.get(position);
-        }
-
-        @Override
-        public int getCount() {
-            return fragmentsList.size();
-        }
-
-        @Override
-        public void destroyItem(ViewGroup container, int position, Object object) {
-            super.destroyItem(container, position, object);
         }
     }
 

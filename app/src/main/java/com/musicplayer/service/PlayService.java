@@ -199,9 +199,10 @@ public class PlayService extends Service {
             } while (position == cursor.getCount());
             Log.e(TAG, "random position:" + position);
             cursor.moveToPosition(position);
-        } else if (key == StaticVariate.SINGLE) {
-            //单曲循环
         }
+//        else if (key == StaticVariate.SINGLE) {
+            //单曲循环
+//        }
         setUIMessage();
         insertToRecentlyList();
         sendBroadcast(new Intent(StaticVariate.ACTION_PREV));
@@ -226,9 +227,10 @@ public class PlayService extends Service {
             } while (position == cursor.getCount());
             Log.e(TAG, "random position:" + position);
             cursor.moveToPosition(position);
-        } else if (key == StaticVariate.SINGLE) {
-            //单曲循环
         }
+//        else if (key == StaticVariate.SINGLE) {
+            //单曲循环
+//        }
         setUIMessage();
         insertToRecentlyList();
         sendBroadcast(new Intent(StaticVariate.ACTION_NEXT));
@@ -371,6 +373,7 @@ public class PlayService extends Service {
                         + " where " + StaticVariate.fileUrl + " = ?",
                 new String[]{cursor.getString(cursor.getColumnIndex(StaticVariate.fileUrl))});
         if (cursorFavorite.getCount() != 0) {
+            cursorFavorite.close();
             viewBig.setImageViewResource(R.id.img_favorite,
                     R.drawable.ic_favorite_yes);
         } else {
@@ -498,11 +501,11 @@ public class PlayService extends Service {
 //        Object service = getSystemService(Context.VIBRATOR_SERVICE);
         try {
             Method collapse;
-            if (Build.VERSION.SDK_INT <= 16) {
-                collapse = service.getClass().getMethod("collapse");
-            } else {
+//            if (Build.VERSION.SDK_INT <= 16) {
+//                collapse = service.getClass().getMethod("collapse");
+//            } else {
                 collapse = service.getClass().getMethod("collapsePanels");
-            }
+//            }
             collapse.setAccessible(true);
             collapse.invoke(service);
         } catch (Exception e) {

@@ -16,21 +16,13 @@ import com.lauzy.freedom.library.Lrc;
 import com.lauzy.freedom.library.LrcHelper;
 import com.musicplayer.R;
 import com.musicplayer.ui.widget.LrcView;
-import com.musicplayer.utils.StaticVariate;
+import com.musicplayer.utils.Variate;
 
 import java.io.File;
 import java.util.List;
 
 import me.zhengken.lyricview.LyricView;
 
-/**
- * A simple {@link Fragment} subclass.
- * Activities that contain this fragment must implement the
- * {@link LyricFragment.OnFragmentInteractionListener} interface
- * to handle interaction events.
- * Use the {@link LyricFragment# newInstance} factory method to
- * create an instance of this fragment.
- */
 public class LyricFragment extends Fragment{
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -96,14 +88,11 @@ public class LyricFragment extends Fragment{
 //        });
         initLyric();
 
-        lrcView.setOnPlayIndicatorLineListener(new LrcView.OnPlayIndicatorLineListener() {
-            @Override
-            public void onPlay(long var1, String var3) {
-                Log.e(TAG,"歌词跳转播放");
+        lrcView.setOnPlayIndicatorLineListener((var1, var3) -> {
+            Log.e(TAG,"歌词跳转播放");
 //                Log.e(TAG,"var1 "+var1 +"var3 " +var3);
-                StaticVariate.setPlayProgress = (int)(var1);
-                StaticVariate.isSetProgress = true;
-            }
+            Variate.setPlayProgress = (int)(var1);
+            Variate.isSetProgress = true;
         });
 
         ChangeUI changeUI = new ChangeUI();
@@ -114,10 +103,10 @@ public class LyricFragment extends Fragment{
         @Override
         public void run() {
             while (run){
-                if(StaticVariate.isPlay){
-                    handler.sendEmptyMessage(1);
-                }else if (StaticVariate.isInitLyric) {
+                if (Variate.isInitLyric) {
                     handler.sendEmptyMessage(2);
+                }else {
+                    handler.sendEmptyMessage(1);
                 }
                 try {
                     sleep(100);
@@ -133,12 +122,12 @@ public class LyricFragment extends Fragment{
         public boolean handleMessage(Message msg) {
             switch (msg.what){
                 case 1:
-                    lrcView.updateTime(StaticVariate.playProgress);
+                    lrcView.updateTime(Variate.playProgress);
                     break;
                 case 2:
                     Log.e(TAG,"初始化歌词");
                     initLyric();
-                    StaticVariate.isInitLyric = false;
+                    Variate.isInitLyric = false;
                     break;
             }
             return false;
@@ -150,7 +139,7 @@ public class LyricFragment extends Fragment{
 //        Uri uri=Uri.parse(uriStr);
 //        File file = new File(String.valueOf(uri));
         File file = new File("/sdcard/不要命.lrc");
-        Log.e(TAG,"file path" + file.getPath());
+//        Log.e(TAG,"file path" + file.getPath());
         //从文件读取:
         lrc = LrcHelper.parseLrcFromFile(file);
         //设置歌词数据：

@@ -1,13 +1,13 @@
 package com.musicplayer.ui.activity;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -18,14 +18,13 @@ import com.musicplayer.R;
 import com.musicplayer.database.DataBase;
 import com.musicplayer.utils.BaseActivity;
 import com.musicplayer.utils.Song;
-import com.musicplayer.utils.StaticVariate;
+import com.musicplayer.utils.Variate;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 import static com.musicplayer.utils.AudioUtils.getSong;
-import static com.musicplayer.utils.MethodUtils.insertSong;
 
 public class ScanLocalSongActivity extends BaseActivity implements View.OnClickListener {
 
@@ -89,6 +88,7 @@ public class ScanLocalSongActivity extends BaseActivity implements View.OnClickL
                 SaveSongToDataBaseThread saveSongToDataBaseThread = new SaveSongToDataBaseThread();
                 saveSongToDataBaseThread.start();
                 btnScanAll.setClickable(false);
+                btnScanAll.setText("正在扫描...");
                 break;
         }
     }
@@ -136,10 +136,10 @@ public class ScanLocalSongActivity extends BaseActivity implements View.OnClickL
 
     class SaveSongToDataBaseThread extends Thread {
         DataBase dataBase = new DataBase(mContext,
-                StaticVariate.dataBaseName, null, 1);
+                Variate.dataBaseName, null, 1);
         SQLiteDatabase db = dataBase.getWritableDatabase();
         Cursor cursor;
-        String fileUrl;
+        String songUrl;
         int duration;
         Song song;
         Bundle bundle = new Bundle();
@@ -153,21 +153,21 @@ public class ScanLocalSongActivity extends BaseActivity implements View.OnClickL
                     synchronized (this) {
                         song = getSong(fileList.get(position).getPath());
                     }
-                    fileUrl = song.getFileUrl();
-                    bundle.putString("fileUrl", fileUrl);
+                    songUrl = song.getSongUrl();
+                    bundle.putString("songUrl", songUrl);
                     Message message = new Message();
                     message.what = 1;
                     message.setData(bundle);
                     changeUIHandler.sendMessage(message);
                     duration = song.getDuration() / 1000;
                     if (duration > 30) {
-                        cursor = db.rawQuery("select id from " + StaticVariate.localSongListTable
-                                        + " where " + StaticVariate.fileUrl + " = ?",
-                                new String[]{fileUrl});
+                        cursor = db.rawQuery("select " + Variate.keySongId + " from " + Variate.localSongListTable
+                                        + " where " + Variate.keySongUrl + " = ?",
+                                new String[]{songUrl});
                         int count = cursor.getCount();
                         if (count == 0) {
-                            Log.e(TAG, fileUrl);
-                            insertSong(db, StaticVariate.localSongListTable, song);
+                            Log.e(TAG, songUrl);
+                            insertSong(db, song);
                             newAddNum++;
                         }
                     }
@@ -199,19 +199,33 @@ public class ScanLocalSongActivity extends BaseActivity implements View.OnClickL
         }
     }
 
-    private Handler changeUIHandler = new Handler() {
-        public void handleMessage(Message msg) {
+    //添加音乐
+    public static void insertSong(SQLiteDatabase db, Song song) {
+        ContentValues values = new ContentValues();
+        values.put(Variate.keySongName, song.getSongName());
+        values.put(Variate.keySinger, song.getSinger());
+        values.put(Variate.keySongUrl, song.getSongUrl());
+        values.put(Variate.keySongType, Variate.SONG_TYPE_LOCAL);
+        db.insert(Variate.localSongListTable, null, values);
+    }
+
+    private Handler changeUIHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message msg) {
             switch (msg.what) {
                 case 1:
-                    String fileUrl = msg.getData().getString("fileUrl");
-                    tvScanFile.setText(fileUrl);
+                    String songUrl = msg.getData().getString("songUrl");
+                    tvScanFile.setText(songUrl);
                     break;
                 case 2:
                     tvScanning.setText("扫描完成");
-                    tvScanFile.setText("共扫描到" + num + "首，新增"
-                            + msg.getData().getInt("newAddNum") + "首");
+                    tvScanFile.setText(new StringBuilder().append("共扫描到").append(num)
+                            .append("首，新增").append(msg.getData().getInt("newAddNum")).append("首").toString());
+                    btnScanAll.setText("完成");
                     btnScanAll.setClickable(true);
+                    btnScanAll.setOnClickListener(v -> ScanLocalSongActivity.this.finish());
             }
+            return false;
         }
-    };
+    });
 }

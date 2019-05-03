@@ -50,7 +50,7 @@ public class AudioUtils {
                 // 文件名
                 song.setFileName(cursor.getString(1));
                 // 歌曲名
-                song.setTitle(cursor.getString(2));
+                song.setSongName(cursor.getString(2));
                 // 时长
                 song.setDuration(cursor.getInt(3));
                 // 歌手名
@@ -78,7 +78,7 @@ public class AudioUtils {
                 }
                 // 文件路径
                 if (cursor.getString(9) != null) {
-                    song.setFileUrl(cursor.getString(9));
+                    song.setSongUrl(cursor.getString(9));
                 }
                 songs.add(song);
             } while (cursor.moveToNext());
@@ -90,7 +90,7 @@ public class AudioUtils {
     }
 
     public static void startPlay(Context context, SharedPreferences.Editor editor, String table, int position) {
-        editor.putString(StaticVariate.keyListName, table);
+        editor.putString(Variate.keyTableName, table);
         editor.putInt("position", position);
         editor.apply();
         Intent intent = new Intent(context, PlayService.class);
@@ -107,13 +107,13 @@ public class AudioUtils {
             song.setSize((size + "").substring((size + "").indexOf("."), (size + "").indexOf(".") + 2) + "M");
             mmr.setDataSource(path);
             if (mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE) != null) {
-                song.setTitle(mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE));
+                song.setSongName(mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE));
             } else {
-                song.setTitle(path.substring(path.lastIndexOf("/") + 1));
+                song.setSongName(path.substring(path.lastIndexOf("/") + 1,path.lastIndexOf('.')));
             }
             song.setFileName(path.substring(path.lastIndexOf("/") + 1));
 //            Log.e("fileName",path.substring(path.lastIndexOf("/") + 1));
-            song.setFileUrl(path);
+            song.setSongUrl(path);
             if (mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST) != null) {
                 song.setSinger(mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST));
             } else {

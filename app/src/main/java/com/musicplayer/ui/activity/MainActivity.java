@@ -6,24 +6,17 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Bundle;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
-import android.os.Bundle;
 import android.view.Gravity;
-import android.view.KeyEvent;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.TranslateAnimation;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.musicplayer.R;
@@ -31,12 +24,11 @@ import com.musicplayer.adapter.TabAdapter;
 import com.musicplayer.database.DataBase;
 import com.musicplayer.ui.fragment.DiscoverFragment;
 import com.musicplayer.ui.fragment.MyFragment;
+import com.musicplayer.ui.widget.PlayBarLayout;
 import com.musicplayer.utils.BaseActivity;
 import com.musicplayer.utils.MyApplication;
 
 import java.util.ArrayList;
-
-import static com.musicplayer.utils.MethodUtils.getDbWidth;
 
 public class MainActivity extends BaseActivity implements View.OnClickListener {
 
@@ -49,6 +41,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     private SharedPreferences preferencesSet;
     private SharedPreferences.Editor editorSet;
 
+    private PlayBarLayout playBarLayout;
     private LinearLayout linearLayoutExit;
     private ImageView imgMenu, imgSearch;
     private TabLayout tabLayout;
@@ -70,6 +63,13 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         setOnClickListener();
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+//        super.onRestart();
+        playBarLayout.mBindService(mContext);
+    }
+
     private void setOnClickListener() {
         imgMenu.setOnClickListener(this);
         imgSearch.setOnClickListener(this);
@@ -79,7 +79,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     private void init() {
         mainDrawerLayout = findViewById(R.id.drawer_layout_main);
         linearLayoutExit = findViewById(R.id.ll_exit);
-
+        playBarLayout = findViewById(R.id.play_bar_layout);
         tabLayout = findViewById(R.id.tab_layout);
         viewPager = findViewById(R.id.view_pager);
 
@@ -122,6 +122,12 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 }
                 break;
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        playBarLayout.mUnBindService(mContext);
     }
 
     //返回后台

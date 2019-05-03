@@ -1,20 +1,14 @@
 package com.musicplayer.utils;
 
 import android.app.Activity;
-import android.app.ProgressDialog;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.os.Handler;
-import android.os.Message;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.widget.PopupMenu;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -23,131 +17,143 @@ import android.widget.Toast;
 import com.musicplayer.R;
 import com.musicplayer.adapter.SongListAdapter;
 
-import static com.musicplayer.utils.TimeUtils.getMSTime;
+import java.util.List;
 
 public class MethodUtils {
 
-    //添加音乐
-    public static void insertSong(SQLiteDatabase db, String table, Cursor cursor, boolean setTime) {
-        ContentValues values = new ContentValues();
 
-        values.put(StaticVariate.title, cursor.getString(cursor.getColumnIndex(StaticVariate.title)));
-        values.put(StaticVariate.singer, cursor.getString(cursor.getColumnIndex(StaticVariate.singer)));
-        values.put(StaticVariate.fileUrl, cursor.getString(cursor.getColumnIndex(StaticVariate.fileUrl)));
-        if (setTime) {
-            values.put(StaticVariate.addTime, getMSTime());
-        } else {
-            values.put(StaticVariate.addTime, cursor.getLong(cursor.getColumnIndex(StaticVariate.addTime)));
+    //添加音乐
+    public static void addSong(SQLiteDatabase db, String table, Cursor cursor) {
+        ContentValues values = new ContentValues();
+        values.put(Variate.keySongName, cursor.getString(cursor.getColumnIndex(Variate.keySongName)));
+        values.put(Variate.keySinger, cursor.getString(cursor.getColumnIndex(Variate.keySinger)));
+        values.put(Variate.keySongUrl, cursor.getString(cursor.getColumnIndex(Variate.keySongUrl)));
+        values.put(Variate.keySongType, cursor.getString(cursor.getColumnIndex(Variate.keySongType)));
+        db.insert(table, null, values);
+    }
+
+    //添加本地音乐到数据库
+    public static void saveSong(SQLiteDatabase db, List<Song> songs) {
+        ContentValues values;
+        for (int i = 0; i < songs.size(); i++) {
+            values = new ContentValues();
+            values.put(Variate.keySongName, songs.get(i).getSongName());
+            values.put(Variate.keySinger, songs.get(i).getSinger());
+            values.put(Variate.keySongUrl, songs.get(i).getSongUrl());
+            values.put(Variate.keySongType, Variate.SONG_TYPE_LOCAL);
+            db.insert(Variate.localSongListTable, null, values);
+            values.clear();
+            Log.e("*insertSong", songs.get(i).getSongName());
         }
-        db.insert(table, null, values);
     }
 
-    //添加音乐
-    public static void insertSong(SQLiteDatabase db, String table, Song song) {
+    //添加至播放列表
+    public static void savePlayList(SQLiteDatabase db, Cursor cursor) {
         ContentValues values = new ContentValues();
-        values.put(StaticVariate.title, song.getTitle());
-        values.put(StaticVariate.singer, song.getSinger());
-        values.put(StaticVariate.fileUrl, song.getFileUrl());
-        values.put(StaticVariate.addTime, getMSTime());
-        db.insert(table, null, values);
+        db.execSQL("delete from " + Variate.playListTable);
+//        Log.e("*savePlayList",""+cursor.getCount());
+        if (cursor.getCount() != 0) {
+            cursor.moveToFirst();
+            new Thread(() -> {
+                Log.e("*savePlayList", "" + cursor.getCount());
+                for (int i = 0; i < cursor.getCount(); i++, cursor.moveToNext()) {
+                    values.put(Variate.keySongName, cursor.getString(cursor.getColumnIndex(Variate.keySongName)));
+                    values.put(Variate.keySinger, cursor.getString(cursor.getColumnIndex(Variate.keySinger)));
+                    values.put(Variate.keySongUrl, cursor.getString(cursor.getColumnIndex(Variate.keySongUrl)));
+                    values.put(Variate.keySongType, cursor.getString(cursor.getColumnIndex(Variate.keySongType)));
+                    db.insert(Variate.playListTable, null, values);
+                    Log.e("*savePlayList", cursor.getString(cursor.getColumnIndex(Variate.keySongName)));
+                    values.clear();
+                }
+            }).start();
+        }
     }
 
-    //本地音乐搜索
-    public static Cursor searchLocalSong(SQLiteDatabase db, String table, String searchText) {
-        Cursor cursor = db.rawQuery(
-                "select * from "
-                        + table
-                        + " where "
-                        + StaticVariate.title + " like ?"
-                        + " or "
-                        + StaticVariate.singer + " like ?"
-                , new String[]{"%" + searchText + "%", "%" + searchText + "%"});
-        cursor.moveToFirst();
-        return cursor;
+    //保存当前播放音乐的信息
+    public static void setPlayMessage(SharedPreferences.Editor editor, Cursor cursor, String tableName, int position) {
+        editor.putString(Variate.keyTableName, tableName);
+        editor.putInt("position", position);
+        editor.putString(Variate.keySongName,
+                cursor.getString(cursor.getColumnIndex(Variate.keySongName)));
+        editor.putString(Variate.keySinger,
+                cursor.getString(cursor.getColumnIndex(Variate.keySinger)));
+        editor.putString(Variate.keySongUrl,
+                cursor.getString(cursor.getColumnIndex(Variate.keySongUrl)));
+        editor.putString(Variate.keySongType,
+                cursor.getString(cursor.getColumnIndex(Variate.keySongType)));
+        editor.apply();
     }
+
 
     //添加收藏
     public static void addFavorite(Context context, SQLiteDatabase db, Cursor cursorSong) {
         Cursor favoriteCursor = db.rawQuery
-                ("select * from " + StaticVariate.favoriteSongListTable + " where " +
-                                StaticVariate.fileUrl + " = ?",
-                        new String[]{cursorSong.getString(cursorSong.getColumnIndex(StaticVariate.fileUrl))});
+                ("select * from " + Variate.favoriteSongListTable + " where " +
+                                Variate.keySongUrl + " = ?",
+                        new String[]{cursorSong.getString(cursorSong.getColumnIndex(Variate.keySongUrl))});
         if (favoriteCursor.getCount() == 0) {
-            insertSong(db, StaticVariate.favoriteSongListTable, cursorSong, true);
+            addSong(db, Variate.favoriteSongListTable, cursorSong);
             Toast.makeText(context, "已添加至我的收藏", Toast.LENGTH_SHORT).show();
         } else {
-            db.delete(StaticVariate.favoriteSongListTable, StaticVariate.fileUrl + " = ?",
-                    new String[]{cursorSong.getString(cursorSong.getColumnIndex(StaticVariate.fileUrl))});
-            Toast.makeText(context, "已从我的收藏移除", Toast.LENGTH_SHORT).show();
+            db.delete(Variate.favoriteSongListTable, Variate.keySongUrl + " = ?",
+                    new String[]{cursorSong.getString(cursorSong.getColumnIndex(Variate.keySongUrl))});
+            Toast.makeText(context, "已从我i的收藏移除", Toast.LENGTH_SHORT).show();
         }
     }
 
-    //添加到歌单
+    //添加到歌单对话框
     public static void addSongMenu(final Context context, final SQLiteDatabase db,
                                    final Cursor cursorSong, final View viewAddSongMenuDialog) {
-        Log.e("****添加歌单", cursorSong.getString(cursorSong.getColumnIndex(StaticVariate.title)));
-        Cursor cursorSongMenuName = db.query(StaticVariate.songMenuNameTable,
-                null, null, null, null, null, null);
+        Log.e("****添加歌单", cursorSong.getString(cursorSong.getColumnIndex(Variate.keySongName)));
+        Cursor cursorSongMenuName = db.rawQuery("select * from " + Variate.songMenuNameTable, null);
         final String[] songMenuName = new String[cursorSongMenuName.getCount()];
         for (int i = 0; i < cursorSongMenuName.getCount(); i++) {
             cursorSongMenuName.moveToNext();
             songMenuName[i] = cursorSongMenuName.getString(
-                    cursorSongMenuName.getColumnIndex(StaticVariate.songMenuName));
+                    cursorSongMenuName.getColumnIndex(Variate.keySongMenuName));
         }
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle("添加到歌单")
-                .setItems(songMenuName, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        Log.e("***歌单名", songMenuName[which]);
-                        //获取歌单id
-                        Cursor cursorSongMenuId = db.rawQuery("select id from "
-                                + StaticVariate.songMenuNameTable
-                                + " where "
-                                + StaticVariate.songMenuName
-                                + " = ?", new String[]{songMenuName[which]});
-                        if (cursorSongMenuId.getCount() == 0) {
+                .setItems(songMenuName, (dialog, which) -> {
+                    Log.e("***歌单名", songMenuName[which]);
+                    //获取歌单id
+                    Cursor cursorSongMenuId = db.rawQuery("select " + Variate.keySongMenuId + " from "
+                            + Variate.songMenuNameTable
+                            + " where "
+                            + Variate.keySongMenuName
+                            + " = ?", new String[]{songMenuName[which]});
+                    if (cursorSongMenuId.getCount() == 0) {
+                        Toast.makeText(context,
+                                "获取歌单id失败",
+                                Toast.LENGTH_SHORT).show();
+                    } else {
+                        cursorSongMenuId.moveToFirst();
+                        int songMenuId = cursorSongMenuId.getInt(0);
+                        Log.e("***歌单id", "" + songMenuId);
+                        String tableName = Variate.songMenuTable
+                                + "_" + songMenuId;
+                        //判断是否已存在
+                        Cursor cursorSongMenuSong = db.rawQuery("select "
+                                        + Variate.keySongUrl
+                                        + " from " + tableName
+                                        + " where " + Variate.keySongUrl + " = ?",
+                                new String[]{cursorSong.getString(
+                                        cursorSong.getColumnIndex(Variate.keySongUrl))});
+                        if (cursorSongMenuSong.getCount() == 0) {
+                            //添加音乐
+                            addSongToSongMenu(db, cursorSong, songMenuId);
                             Toast.makeText(context,
-                                    "获取歌单id失败",
+                                    "已添加到歌单“" + songMenuName[which] + "”",
                                     Toast.LENGTH_SHORT).show();
                         } else {
-                            cursorSongMenuId.moveToFirst();
-                            int id = cursorSongMenuId.getInt(cursorSongMenuId.getColumnIndex("id"));
-                            Log.e("***歌单id", "" + id);
-                            String tableName = StaticVariate.songMenuTable
-                                    + "_" + id;
-                            //判断是否已存在
-                            Cursor cursorSongMenuSong = db.rawQuery("select "
-                                            + StaticVariate.fileUrl
-                                            + " from " + tableName
-                                            + " where " + StaticVariate.fileUrl + " = ?",
-                                    new String[]{cursorSong.getString(
-                                            cursorSong.getColumnIndex(StaticVariate.fileUrl))});
-                            if (cursorSongMenuSong.getCount() == 0) {
-                                //添加音乐
-                                addSong(db, cursorSong, id);
-                                Toast.makeText(context,
-                                        "已添加到歌单“" + songMenuName[which] + "”",
-                                        Toast.LENGTH_SHORT).show();
-                            } else {
-                                Toast.makeText(context,
-                                        "歌曲已存在",
-                                        Toast.LENGTH_SHORT).show();
-                            }
+                            Toast.makeText(context,
+                                    "歌曲已存在",
+                                    Toast.LENGTH_SHORT).show();
                         }
                     }
-                }).setPositiveButton("新建歌单", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                addSongMenuDialog(context, db, viewAddSongMenuDialog, cursorSong);
-            }
-        }).setNegativeButton("取消", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-
-
-            }
-        }).show();
+                }).setPositiveButton("新建歌单", (dialog, which) ->
+                addSongMenuDialog(context, db, viewAddSongMenuDialog, cursorSong))
+                .setNegativeButton("取消", null).show();
     }
 
     //创建歌单对话框
@@ -158,285 +164,157 @@ public class MethodUtils {
         builder.create();
         final AlertDialog dialog = builder.show();
 
-//        WindowManager windowManager = getWindowManager();
-//        Display display = windowManager.getDefaultDisplay();
-//        WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
-//        lp.width = (int) (display.getWidth() * 0.7); //设置宽度
-//        dialog.getWindow().setAttributes(lp);
-
         final EditText editSongMenuName = viewAddSongMenuDialog.
                 findViewById(R.id.edit_song_menu_name);
         Button btnOK = viewAddSongMenuDialog.findViewById(R.id.btn_ok);
         Button btnCancel = viewAddSongMenuDialog.findViewById(R.id.btn_cancel);
-        btnCancel.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dialog.dismiss();
-            }
-        });
-        btnOK.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (!editSongMenuName.getText().toString().isEmpty()) {
-                    Cursor cursorSongMenuName = db.rawQuery("select " + StaticVariate.songMenuName +
-                                    " from " + StaticVariate.songMenuNameTable +
-                                    " where " + StaticVariate.songMenuName +
-                                    " = ?",
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        btnOK.setOnClickListener(v -> {
+            if (!editSongMenuName.getText().toString().isEmpty()) {
+                Cursor cursorSongMenuName = db.rawQuery("select " + Variate.keySongMenuName +
+                                " from " + Variate.songMenuNameTable +
+                                " where " + Variate.keySongMenuName +
+                                " = ?",
+                        new String[]{editSongMenuName.getText().toString()});
+                //把歌单名插入表
+                if (cursorSongMenuName.getCount() == 0) {
+                    ContentValues values = new ContentValues();
+                    Log.e("****", editSongMenuName.getText().toString());
+                    values.put(Variate.keySongMenuName, editSongMenuName.getText().toString());
+                    values.put(Variate.keySongNumber, 0);
+                    db.insert(Variate.songMenuNameTable, null, values);
+                    dialog.dismiss();
+                    //获取歌单Id
+                    Cursor cursorSongMenuId = db.rawQuery("select " + Variate.keySongMenuId + " from "
+                                    + Variate.songMenuNameTable + " where "
+                                    + Variate.keySongMenuName + " = ?",
                             new String[]{editSongMenuName.getText().toString()});
-                    //把歌单名插入表
-                    if (cursorSongMenuName.getCount() == 0) {
-                        ContentValues values = new ContentValues();
-                        Log.e("****", editSongMenuName.getText().toString());
-                        values.put(StaticVariate.songMenuName, editSongMenuName.getText().toString());
-                        values.put(StaticVariate.songNumber, 0);
-                        db.insert(StaticVariate.songMenuNameTable,
-                                null, values);
-                        dialog.dismiss();
-                        //获取歌单Id
-                        Cursor cursorSongMenuId = db.rawQuery("select id from "
-                                        + StaticVariate.songMenuNameTable + " where "
-                                        + StaticVariate.songMenuName + " = ?",
-                                new String[]{editSongMenuName.getText().toString()});
-                        cursorSongMenuId.moveToFirst();
-                        int id = cursorSongMenuId.getInt(cursorSongMenuId.getColumnIndex("id"));
-                        //根据歌单Id创建表
-                        db.execSQL("create table songMenuTable"
-                                + "_" + id
-                                + "(id integer primary key AUTOINCREMENT, "
-                                + "title text, "
-                                + "singer text, "
-                                + "fileUrl text,"
-                                + "addTime interger)");
-                        addSong(db, cursorSong, id);
-                        Toast.makeText(context, "添加成功", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(context, "歌单已存在", Toast.LENGTH_SHORT).show();
-                    }
+                    cursorSongMenuId.moveToFirst();
+                    int songMenuId = cursorSongMenuId.getInt(0);
+                    //根据歌单Id创建表
+                    db.execSQL("create table songMenuTable"
+                            + "_" + songMenuId
+                            + "(songId integer primary key AUTOINCREMENT, "
+                            + "songName text, "
+                            + "singer text, "
+                            + "songUrl text,"
+                            + "songType interger)");
+                    addSongToSongMenu(db, cursorSong, songMenuId);
+                    Toast.makeText(context, "添加成功", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(context, "歌单名不能为空", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "歌单已存在", Toast.LENGTH_SHORT).show();
                 }
+            } else {
+                Toast.makeText(context, "歌单名不能为空", Toast.LENGTH_SHORT).show();
             }
         });
-
     }
 
-    public static void addSong(SQLiteDatabase db, Cursor cursorSong, int id) {
+    //把音乐添加至歌单
+    public static void addSongToSongMenu(SQLiteDatabase db, Cursor cursorSong, int songMenuId) {
         //往表了添加歌
-        String tableName = StaticVariate.songMenuTable
-                + "_" + id;
-        insertSong(db, tableName, cursorSong, true);
+        String tableName = Variate.songMenuTable
+                + "_" + songMenuId;
+        addSong(db, tableName, cursorSong);
         //设置歌单音乐数量
-        Cursor cursorSongNumber = db.rawQuery("select id from "
+        Cursor cursorSongNumber = db.rawQuery("select " + Variate.keySongName + " from "
                 + tableName, new String[]{});
-        db.execSQL("update " + StaticVariate.songMenuNameTable
-                + " set " + StaticVariate.songNumber + " = "
+        db.execSQL("update " + Variate.songMenuNameTable
+                + " set " + Variate.keySongNumber + " = "
                 + cursorSongNumber.getCount()
-                + " where id = " + id);
+                + " where " + Variate.keySongMenuId + " = " + songMenuId);
         Log.e("****歌单音乐数量", "" + cursorSongNumber.getCount());
     }
 
     //删除音乐
-    public static void deleteSong(final Context context, final SQLiteDatabase db,
-                                  final String table, final Cursor cursorSong,
-                                  final SharedPreferences preferencesPlayList,
-                                  final int songListItemPosition,
-                                  final SongListAdapter songListAdapter) {
+    public static void deleteSong(Context context, SQLiteDatabase db,
+                                  String table, Cursor cursorSong, SongListAdapter adapter) {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle("删除").setMessage("确定要删除“"
-                + cursorSong.getString(cursorSong.getColumnIndex(StaticVariate.title))
-                + "”？").setPositiveButton("确定", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                db.delete(table, StaticVariate.fileUrl
-                        + " = ?", new String[]{cursorSong.getString(
-                        cursorSong.getColumnIndex(StaticVariate.fileUrl))});
-                //更新当前播放列表
-                if (preferencesPlayList.getString(StaticVariate.keyListName, "")
-                        .equals(StaticVariate.localSongListTable)) {
-                    if (songListItemPosition < preferencesPlayList.getInt("position", 0)) {
-                        StaticVariate.isSubPosition = true;
-                    } else if (songListItemPosition == preferencesPlayList.getInt("position", 0)) {
-                        StaticVariate.isEqualPosition = true;
-                    }
-                    StaticVariate.isDelete = true;
-                }
-                songListAdapter.changeData();
-                songListAdapter.notifyDataSetChanged();
-                Toast.makeText(context, "删除成功", Toast.LENGTH_SHORT).show();
+                + cursorSong.getString(cursorSong.getColumnIndex(Variate.keySongName))
+                + "”？").setPositiveButton("确定", (dialog, which) -> {
+            db.delete(table, Variate.keySongUrl
+                    + " = ?", new String[]{cursorSong.getString(
+                    cursorSong.getColumnIndex(Variate.keySongUrl))});
+            adapter.changeData();
+            adapter.notifyDataSetChanged();
+            Log.e("*deleteSong ", table.substring(table.lastIndexOf('_') + 1));
+            if (table.lastIndexOf('_') != -1) {
+                Cursor cursor = db.rawQuery("select * from " + table, null);
+                db.execSQL("update " + Variate.songMenuNameTable
+                        + " set " + Variate.keySongNumber + " = "
+                        + cursor.getCount()
+                        + " where " + Variate.keySongMenuId + " = " + table.substring(table.lastIndexOf('_') + 1));
             }
-        }).setNegativeButton("取消", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-
-            }
-        }).show();
-    }
-
-    //排序
-    public static void showOrderPopupMenu(Context context, View view,
-                                          final SQLiteDatabase db,
-                                          final String table,
-                                          SharedPreferences preferencesSet,
-                                          final SharedPreferences.Editor editorSet,
-                                          final Handler changeUIHandler,
-                                          final ProgressDialog progressDialog,
-                                          final String keyOrder) {
-        final PopupMenu pm = new PopupMenu(context, view);
-        pm.getMenuInflater().inflate(R.menu.menu_popupmenu_order_way, pm.getMenu());
-        final int order = preferencesSet.getInt(keyOrder, -1);
-        if (order == -1) {
-            pm.getMenu().getItem(2).setChecked(true);
-            editorSet.putInt(keyOrder, StaticVariate.ORDER_ADD_TIME_ASC);
-            editorSet.apply();
-        }
-        if (order == StaticVariate.ORDER_TITLE_ASC || order == StaticVariate.ORDER_TITLE_DESC) {
-            pm.getMenu().getItem(0).setChecked(true);
-        } else if (order == StaticVariate.ORDER_SINGER_ASC || order == StaticVariate.ORDER_SINGER_DESC) {
-            pm.getMenu().getItem(1).setChecked(true);
-        } else if (order == StaticVariate.ORDER_ADD_TIME_ASC || order == StaticVariate.ORDER_ADD_TIME_DESC) {
-            pm.getMenu().getItem(2).setChecked(true);
-        }
-
-        pm.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-            public boolean onMenuItemClick(MenuItem item) {
-                Cursor cursorSong;
-                int ORDER = -1;
-                String sql = "";
-                switch (item.getItemId()) {
-                    case R.id.item_base_title:
-                        if (order == StaticVariate.ORDER_TITLE_ASC) {
-                            sql = "select * from " + table + " order by "
-                                    + StaticVariate.title + " collate localized desc";
-                            ORDER = StaticVariate.ORDER_TITLE_DESC;
-                        } else {
-                            sql = "select * from " + table + " order by " + StaticVariate.title
-                                    + " collate localized asc";
-                            ORDER = StaticVariate.ORDER_TITLE_ASC;
-                        }
-                        break;
-                    case R.id.item_base_singer:
-                        if (order == StaticVariate.ORDER_SINGER_ASC) {
-                            sql = "select * from " + table + " order by " + StaticVariate.singer
-                                    + " collate localized desc";
-                            ORDER = StaticVariate.ORDER_SINGER_DESC;
-                        } else {
-                            sql = "select * from " + table + " order by " + StaticVariate.singer
-                                    + " collate localized asc";
-                            ORDER = StaticVariate.ORDER_SINGER_ASC;
-                        }
-                        break;
-                    case R.id.item_base_add_time:
-                        if (order == StaticVariate.ORDER_ADD_TIME_ASC) {
-                            sql = "select * from " + table + " order by "
-                                    + StaticVariate.addTime + " desc";
-                            ORDER = StaticVariate.ORDER_ADD_TIME_DESC;
-                        } else {
-                            sql = "select * from " + table + " order by "
-                                    + StaticVariate.addTime + " asc";
-                            ORDER = StaticVariate.ORDER_ADD_TIME_ASC;
-                        }
-                        break;
-                }
-                progressDialog.show();
-                cursorSong = db.rawQuery(sql, null);
-                editorSet.putInt(keyOrder, ORDER);
-                editorSet.apply();
-                cursorSong.moveToFirst();
-                SaveSongThread saveSongThread = new SaveSongThread(cursorSong);
-                saveSongThread.start();
-                pm.dismiss();
-                return false;
-            }
-
-            //把音乐列表存入数据库
-            class SaveSongThread extends Thread {
-
-                Cursor cursorSong;
-
-                public SaveSongThread(Cursor cursorSong) {
-                    this.cursorSong = cursorSong;
-                }
-
-                public void run() {
-                    db.execSQL("delete from " + table);
-                    for (int i = 0; i < cursorSong.getCount(); i++) {
-                        cursorSong.moveToPosition(i);
-                        insertSong(db, table, cursorSong, false);
-                    }
-                    Message message = new Message();
-                    message.what = StaticVariate.ORDER_COMPLETE;
-                    changeUIHandler.sendMessage(message);
-                }
-
-            }
-        });
-        pm.show();
+            //更新当前播放列表
+//            if (preferencesPlayList.getString(Variate.keyTableName, "")
+//                    .equals(Variate.localSongListTable)) {
+//                if (songListItemPosition < preferencesPlayList.getInt("position", 0)) {
+//                    Variate.isSubPosition = true;
+//                } else if (songListItemPosition == preferencesPlayList.getInt("position", 0)) {
+//                    Variate.isEqualPosition = true;
+//                }
+//                Variate.isDelete = true;
+//            }
+            Toast.makeText(context, "删除成功", Toast.LENGTH_SHORT).show();
+        }).setNegativeButton("取消", null).show();
     }
 
     //根据排序设置获取SQL查询语句
     public static String getSqlBaseOrder(String table, SharedPreferences preferencesSet) {
-        String sql;
+        StringBuilder sql = new StringBuilder();
         int order;
-        String tempTable;
-
-        if(table.lastIndexOf("_") == -1){
-            tempTable = table;
-        }else {
-            tempTable = table.substring(0,table.lastIndexOf("_"));
-            Log.e("***",table.substring(0,table.lastIndexOf("_")));
-            Log.e("***",StaticVariate.keySongMenuOrder
-                    + "_" + table.substring(table.indexOf("_")+1));
-        }
-        switch (tempTable) {
-            case StaticVariate.localSongListTable:
-                order = preferencesSet.getInt(StaticVariate.keyLocalOrder, -1);
+        switch (table) {
+            case Variate.localSongListTable:
+                order = preferencesSet.getInt(Variate.keyLocalSort, Variate.SORT_TIME_DESC);
                 break;
-            case StaticVariate.favoriteSongListTable:
-                order = preferencesSet.getInt(StaticVariate.keyFavoriteOrder, -1);
+            case Variate.favoriteSongListTable:
+                order = preferencesSet.getInt(Variate.keyFavoriteSort, Variate.SORT_TIME_DESC);
                 break;
-            case StaticVariate.songMenuTable:
-                order = preferencesSet.getInt(StaticVariate.keySongMenuOrder
-                        + "_" + table.substring(table.indexOf("_")+1), -1);
+            case Variate.downloadSongListTable:
+                order = preferencesSet.getInt(Variate.keyDownloadSort, Variate.SORT_TIME_DESC);
+                break;
+            case Variate.recentlySongListTable:
+                order = preferencesSet.getInt(Variate.keyRecentlySort, Variate.SORT_TIME_DESC);
+                break;
+            case Variate.localSearchSongListTable:
+                order = preferencesSet.getInt(Variate.keyLocalSearchSort, Variate.SORT_NAME_ASC);
                 break;
             default:
-                sql = "select * from " + table;
-                return sql;
+                order = preferencesSet.getInt(Variate.keySongMenuSort
+                        + "_" + table.substring(table.indexOf("_") + 1), Variate.SORT_TIME_DESC);
+                break;
 
         }
+        sql.append("select * from ").append(table).append(" order by ");
         switch (order) {
-            case StaticVariate.ORDER_TITLE_ASC:
-                sql = "select * from " + table + " order by "
-                        + StaticVariate.title + " collate localized asc";
+            case Variate.SORT_NAME_ASC:
+                sql.append(Variate.keySongName + " collate localized asc");
                 break;
-            case StaticVariate.ORDER_TITLE_DESC:
-                sql = "select * from " + table + " order by "
-                        + StaticVariate.title + " collate localized desc";
+            case Variate.SORT_NAME_DESC:
+                sql.append(Variate.keySongName + " collate localized desc");
                 break;
-            case StaticVariate.ORDER_SINGER_ASC:
-                sql = "select * from " + table + " order by "
-                        + StaticVariate.singer + " collate localized asc";
+            case Variate.SORT_SINGER_ASC:
+                sql.append(Variate.keySinger + " collate localized asc");
                 break;
-            case StaticVariate.ORDER_SINGER_DESC:
-                sql = "select * from " + table + " order by "
-                        + StaticVariate.singer + " collate localized desc";
+            case Variate.SORT_SINGER_DESC:
+                sql.append(Variate.keySinger + " collate localized desc");
                 break;
-            case StaticVariate.ORDER_ADD_TIME_ASC:
-                sql = "select * from " + table + " order by "
-                        + StaticVariate.addTime + "  asc";
+            case Variate.SORT_TIME_ASC:
+                sql.append(Variate.keySongId + "  asc");
                 break;
-            case StaticVariate.ORDER_ADD_TIME_DESC:
-                sql = "select * from " + table + " order by "
-                        + StaticVariate.addTime + " desc";
+            case Variate.SORT_TIME_DESC:
+                sql.append(Variate.keySongId + " desc");
                 break;
             default:
-                sql = "select * from " + table + " order by "
-                        + StaticVariate.addTime + "  asc";
+                sql.append(Variate.keySongId + "  asc");
+                break;
         }
-        return sql;
+        return sql.toString();
     }
 
     // 获取屏幕宽度
-    public static int getDbWidth(Activity activity){
+    public static int getDbWidth(Activity activity) {
         DisplayMetrics dm = new DisplayMetrics();
         activity.getWindowManager().getDefaultDisplay().getMetrics(dm);
         return dm.widthPixels;

@@ -1,22 +1,17 @@
 package com.musicplayer.ui.activity;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.os.Handler;
-import android.os.Message;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.view.menu.MenuPopupHelper;
 import android.support.v7.widget.PopupMenu;
 import android.util.Log;
-import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -24,16 +19,20 @@ import android.widget.TextView;
 import com.musicplayer.R;
 import com.musicplayer.adapter.SongListAdapter;
 import com.musicplayer.database.DataBase;
+import com.musicplayer.ui.widget.PlayBarLayout;
 import com.musicplayer.utils.BaseActivity;
-import com.musicplayer.utils.StaticVariate;
+import com.musicplayer.utils.Variate;
+
+import java.lang.reflect.Field;
 
 import static com.musicplayer.utils.AudioUtils.startPlay;
 import static com.musicplayer.utils.MethodUtils.addFavorite;
 import static com.musicplayer.utils.MethodUtils.addSongMenu;
 import static com.musicplayer.utils.MethodUtils.deleteSong;
-import static com.musicplayer.utils.MethodUtils.showOrderPopupMenu;
+import static com.musicplayer.utils.MethodUtils.getSqlBaseOrder;
+import static com.musicplayer.utils.MethodUtils.setPlayMessage;
 
-public class RecentlyPlayActivity extends BaseActivity implements View.OnClickListener, SongListAdapter.OnSongListItemMenuClickListener {
+public class RecentlyPlayActivity extends BaseActivity implements View.OnClickListener, SongListAdapter.OnSongListItemMenuClickListener, PlayBarLayout.OnPlaySongChangeListener {
 
     private Context mContext;
     private final String TAG = "*RecentlyPlayActivity";
@@ -41,18 +40,16 @@ public class RecentlyPlayActivity extends BaseActivity implements View.OnClickLi
     private SQLiteDatabase db;
     private Cursor cursorSong;
     private SongListAdapter songListAdapter;
-    private SetListPlayIconThread setListPlayIconThread;
-    private int songListItemPosition;
-    private boolean run = true;
     private SharedPreferences preferencesPlayList;
     private SharedPreferences.Editor editorPlayList;
     private SharedPreferences preferencesSet;
     private SharedPreferences.Editor editorSet;
 
-    private static ProgressDialog progressDialog;
+    private PlayBarLayout playBarLayout;
     private ImageView imgTitleBack, imgTitleSearch, imgTitleMenu;
     private TextView tvTitleName;
     private ListView listRecentlyPlay;
+    private String sql;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,24 +57,19 @@ public class RecentlyPlayActivity extends BaseActivity implements View.OnClickLi
         setContentView(R.layout.activity_recently_play);
         init();
         setOnClickListener();
-        cursorSong = db.rawQuery("select * from "
-                + StaticVariate.recentlySongListTable
-                + " order by " + StaticVariate.addTime
-                + " desc ", null);
-        songListAdapter = new SongListAdapter(mContext,
-                cursorSong, StaticVariate.recentlySongListTable);
+        sql = getSqlBaseOrder(Variate.recentlySongListTable, preferencesSet);
+        cursorSong = db.rawQuery(sql, null);
+        songListAdapter = new SongListAdapter(mContext, cursorSong, Variate.recentlySongListTable);
         songListAdapter.setOnItemMenuClickListener(this);
         listRecentlyPlay.setAdapter(songListAdapter);
 
-        listRecentlyPlay.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                startPlay(mContext, editorPlayList,
-                        StaticVariate.recentlySongListTable, position);
-            }
+        listRecentlyPlay.setOnItemClickListener((parent, view, position, id) -> {
+            cursorSong.moveToPosition(position);
+            startPlay(mContext, editorPlayList, Variate.recentlySongListTable, position);
+            setPlayMessage(editorPlayList, cursorSong, Variate.recentlySongListTable, position);
+            songListAdapter.changeData();
+            songListAdapter.notifyDataSetChanged();
         });
-        setListPlayIconThread = new SetListPlayIconThread();
-        setListPlayIconThread.start();
     }
 
 
@@ -85,18 +77,21 @@ public class RecentlyPlayActivity extends BaseActivity implements View.OnClickLi
         imgTitleBack.setOnClickListener(this);
         imgTitleSearch.setOnClickListener(this);
         imgTitleMenu.setOnClickListener(this);
+        playBarLayout.setOnPlaySongChangeListener(this);
     }
 
     private void init() {
         mContext = RecentlyPlayActivity.this;
-        dataBase = new DataBase(this, StaticVariate.dataBaseName,
+        dataBase = new DataBase(this, Variate.dataBaseName,
                 null, 1);
         db = dataBase.getWritableDatabase();
-        cursorSong = db.query(StaticVariate.recentlySongListTable, null, null,
+        cursorSong = db.query(Variate.recentlySongListTable, null, null,
                 null, null, null, null);
 
-        preferencesPlayList = getSharedPreferences(StaticVariate.playList, MODE_PRIVATE);
+        preferencesPlayList = getSharedPreferences(Variate.playList, MODE_PRIVATE);
         editorPlayList = preferencesPlayList.edit();
+        preferencesSet = getSharedPreferences(Variate.set, MODE_PRIVATE);
+        editorSet = preferencesSet.edit();
 
         imgTitleBack = findViewById(R.id.img_title_back);
         imgTitleSearch = findViewById(R.id.img_title_search);
@@ -104,6 +99,7 @@ public class RecentlyPlayActivity extends BaseActivity implements View.OnClickLi
         tvTitleName = findViewById(R.id.tv_title_name);
         tvTitleName.setText("最近播放");
         listRecentlyPlay = findViewById(R.id.list_recently_play);
+        playBarLayout = findViewById(R.id.play_bar_layout);
     }
 
     @Override
@@ -114,134 +110,120 @@ public class RecentlyPlayActivity extends BaseActivity implements View.OnClickLi
                 break;
             case R.id.img_title_search:
                 Intent intent = new Intent(mContext, LocalSearchActivity.class);
-                intent.putExtra("tableName", StaticVariate.recentlySongListTable);
+                intent.putExtra("tableName", Variate.recentlySongListTable);
                 startActivityForResult(intent, 1);
                 break;
             case R.id.img_title_menu:
-                preferencesSet = getSharedPreferences(StaticVariate.keySet, MODE_PRIVATE);
+                preferencesSet = getSharedPreferences(Variate.set, MODE_PRIVATE);
                 editorSet = preferencesSet.edit();
                 titleMenu();
                 break;
         }
     }
 
+    @SuppressLint("RestrictedApi")
     private void titleMenu() {
         final PopupMenu pm = new PopupMenu(mContext, imgTitleMenu);
-        pm.getMenuInflater().inflate(R.menu.menu_popupmenu_song_list_title, pm.getMenu());
+        pm.getMenuInflater().inflate(R.menu.menu_pm_song_list_title, pm.getMenu());
         pm.getMenu().getItem(0).setVisible(false);
-        pm.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(MenuItem menuItem) {
-                switch (menuItem.getItemId()) {
-                    case R.id.item_delete_all:
-                        pm.dismiss();
-                        AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
-                        builder.setTitle("提示").setMessage("确定要清空列表？")
-                                .setNegativeButton("取消", null)
-                                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog, int which) {
-                                        db.execSQL("delete from "+ StaticVariate.recentlySongListTable);
-                                        songListAdapter.changeData();
-                                        songListAdapter.notifyDataSetChanged();
-                                    }
-                                }).show();
-                        break;
-
-                }
-                return false;
+        pm.setOnMenuItemClickListener(menuItem -> {
+            switch (menuItem.getItemId()) {
+                case R.id.item_delete_all:
+                    AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+                    builder.setTitle("提示").setMessage("确定要清空列表？")
+                            .setNegativeButton("取消", null)
+                            .setPositiveButton("确定", (dialog, which) -> {
+                                db.execSQL("delete from " + Variate.recentlySongListTable);
+                                songListAdapter.changeData();
+                                songListAdapter.notifyDataSetChanged();
+                            }).show();
+                    break;
             }
+            return false;
         });
-        pm.show();
+        //使用反射，强制显示菜单图标
+        try {
+            Field field = pm.getClass().getDeclaredField("mPopup");
+            field.setAccessible(true);
+            MenuPopupHelper mHelper = (MenuPopupHelper) field.get(pm);
+            mHelper.setForceShowIcon(true);
+            mHelper.show();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        }
 
     }
 
     //音乐列表菜单点击事件
-    public void onSongListItemMenuClick(int position) {
-        songListItemPosition = position;
-        cursorSong.moveToPosition(songListItemPosition);
-        AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
-        builder.setItems(new String[]{"添加或移除收藏", "添加到歌单", "从列表删除"}, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                Log.e(TAG, "which" + which);
-                songListItemMenuItemClick(which);
-            }
-        }).show();
+    @SuppressLint("RestrictedApi")
+    public void onSongListItemMenuClick(View view, int position) {
+        cursorSong.moveToPosition(position);
+        PopupMenu pm = new PopupMenu(mContext, view.findViewById(R.id.img_song_list_menu));
+        pm.getMenuInflater().inflate(R.menu.memu_pm_local_song_list, pm.getMenu());
+        pm.setOnMenuItemClickListener(menuItem -> {
+            songListItemMenuItemClick(menuItem.getItemId());
+            return false;
+        });
+        //使用反射，强制显示菜单图标
+        try {
+            Field field = pm.getClass().getDeclaredField("mPopup");
+            field.setAccessible(true);
+            MenuPopupHelper mHelper = (MenuPopupHelper) field.get(pm);
+            mHelper.setForceShowIcon(true);
+            mHelper.show();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        }
     }
 
     //音乐列表菜单弹出dialog点击事件
-    private void songListItemMenuItemClick(int dialogItemPosition) {
-        switch (dialogItemPosition) {
+    private void songListItemMenuItemClick(int dialogItemId) {
+        switch (dialogItemId) {
             //添加或移除收藏
-            case 0:
+            case R.id.item_add_favorite:
                 addFavorite(mContext, db, cursorSong);
                 break;
             //添加到歌单
-            case 1:
+            case R.id.item_add_song_menu:
                 View viewAddSongMenuDialog = getLayoutInflater().inflate(R.layout.dialog_add_song_menu, null);
                 addSongMenu(mContext, db, cursorSong, viewAddSongMenuDialog);
                 break;
             //删除
-            case 2:
-                deleteSong(mContext, db, StaticVariate.recentlySongListTable,
-                        cursorSong, preferencesPlayList, songListItemPosition, songListAdapter);
-                cursorSong = db.rawQuery("select * from " + StaticVariate.localSongListTable, null);
+            case R.id.item_delete:
+                deleteSong(mContext, db, Variate.recentlySongListTable, cursorSong, songListAdapter);
+                cursorSong = db.rawQuery(sql, null);
                 break;
         }
     }
 
-    class SetListPlayIconThread extends Thread {
-        public void run() {
-            Log.e(TAG, "SetListPlayIconThread start");
-            while (run) {
-                if (StaticVariate.isSetListPlayIcon) {
-                    Message message = new Message();
-                    message.what = 1;
-                    changeUIHandler.sendMessage(message);
-                }
-                try {
-                    sleep(100);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    break;
-                }
-            }
-            Log.e(TAG, "SetListPlayIconThread close");
-        }
+    @Override
+    public void OnPlaySongChange() {
+        songListAdapter.changeData();
+        songListAdapter.notifyDataSetChanged();
     }
 
-    private Handler changeUIHandler = new Handler() {
-        public void handleMessage(Message msg) {
-            StaticVariate.isSetListPlayIcon = false;
-            songListAdapter.changeData();
-            songListAdapter.notifyDataSetChanged();
-            cursorSong = db.rawQuery("select * from "
-                    + StaticVariate.recentlySongListTable
-                    + " order by " + StaticVariate.addTime
-                    + " desc ", null);
-        }
-    };
+    @Override
+    protected void onStart() {
+        playBarLayout.mBindService(mContext);
+        super.onStart();
+    }
+
+    @Override
+    protected void onPause() {
+        playBarLayout.mUnBindService(mContext);
+        super.onPause();
+    }
 
     protected void onDestroy() {
         super.onDestroy();
-        run = false;
-//        setResult(result);
         dataBase.close();
         db.close();
         cursorSong.close();
         Log.e(TAG, "关闭Activity");
     }
 
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        switch (requestCode) {
-            case 1:
-                if (resultCode == 1) {
-                    songListAdapter.changeData();
-                    songListAdapter.notifyDataSetChanged();
-                }
-                break;
-        }
-    }
 }

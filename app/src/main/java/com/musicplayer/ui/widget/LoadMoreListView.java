@@ -1,11 +1,11 @@
 package com.musicplayer.ui.widget;
 
-import android.widget.ListView;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AbsListView;
+import android.widget.ListView;
 
 import com.musicplayer.R;
 

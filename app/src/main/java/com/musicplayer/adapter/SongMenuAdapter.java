@@ -10,7 +10,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.musicplayer.R;
-import com.musicplayer.utils.StaticVariate;
+import com.musicplayer.utils.Variate;
 
 
 public class SongMenuAdapter extends BaseAdapter {
@@ -57,8 +57,8 @@ public class SongMenuAdapter extends BaseAdapter {
         if (cursor.getCount() != 0) {
             cursor.moveToPosition(position);
             holder.textViewSongMenuName.setText(cursor.getString(
-                    cursor.getColumnIndex(StaticVariate.songMenuName)));
-            int number = cursor.getInt(cursor.getColumnIndex(StaticVariate.songNumber));
+                    cursor.getColumnIndex(Variate.keySongMenuName)));
+            int number = cursor.getInt(cursor.getColumnIndex(Variate.keySongNumber));
             holder.textViewSongNumber.setText(number + "首");
 //        holder.imgSongMenu.
         }

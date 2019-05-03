@@ -51,7 +51,7 @@ public class NetworkSearchUtils {
                         }
                         builderSinger.deleteCharAt(builderSinger.lastIndexOf("/"));
                         Log.e(TAG, "songName:" + songName + " /singer:" + builderSinger.toString() + " /songMid:" + songMid);
-                        songs[i].setTitle(songName);
+                        songs[i].setSongName(songName);
                         songs[i].setSinger(builderSinger.toString());
                         songs[i].setQQSongMid(songMid);
                     }

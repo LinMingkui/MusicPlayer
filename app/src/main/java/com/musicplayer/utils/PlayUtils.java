@@ -16,13 +16,13 @@ public class PlayUtils {
     private static PlayUtils playUtils;
     private static Context mContext;
     private MediaPlayer mediaPlayer = new MediaPlayer();
-    private DataBase dataBase = new DataBase(mContext, StaticVariate.dataBaseName, null, 1);
+    private DataBase dataBase = new DataBase(mContext, Variate.dataBaseName, null, 1);
     private SQLiteDatabase db = dataBase.getWritableDatabase();
-    private SharedPreferences preferencesPlayList = mContext.getSharedPreferences(StaticVariate.playList, Context.MODE_PRIVATE);
-    private SharedPreferences preferencesSet = mContext.getSharedPreferences(StaticVariate.keySet, Context.MODE_PRIVATE);
+    private SharedPreferences preferencesPlayList = mContext.getSharedPreferences(Variate.playList, Context.MODE_PRIVATE);
+    private SharedPreferences preferencesSet = mContext.getSharedPreferences(Variate.set, Context.MODE_PRIVATE);
     private SharedPreferences.Editor editorPlayList = preferencesPlayList.edit();
-    private String listName = StaticVariate.localSongListTable;
-    private String songName,singer,fileUrl;
+    private String tableName = Variate.localSongListTable;
+    private String songName,singer,songUrl;
     private int position = 0;
     private Cursor cursor;
 
@@ -34,21 +34,21 @@ public class PlayUtils {
         return playUtils;
     }
 
-    private void setPlayMessage(Context context, String listName, int position) {
-        editorPlayList.putString(StaticVariate.keyListName, listName);
+    private void setPlayMessage(Context context, String tableName, int position) {
+        editorPlayList.putString(Variate.keyTableName, tableName);
         editorPlayList.putInt("position", position);
         editorPlayList.apply();
-        this.listName = listName;
+        this.tableName = tableName;
         this.position = position;
     }
 
     private void init() {
-        cursor = db.rawQuery("select * from " + listName, null);
+        cursor = db.rawQuery("select * from " + tableName, null);
         if(cursor.getCount() != 0){
             cursor.moveToFirst();
-            fileUrl = cursor.getString(cursor.getColumnIndex(StaticVariate.fileUrl));
-            songName = cursor.getString(cursor.getColumnIndex(StaticVariate.title));
-            singer = cursor.getString(cursor.getColumnIndex(StaticVariate.singer));
+            songUrl = cursor.getString(cursor.getColumnIndex(Variate.keySongUrl));
+            songName = cursor.getString(cursor.getColumnIndex(Variate.keySongName));
+            singer = cursor.getString(cursor.getColumnIndex(Variate.keySinger));
         }
     }
 
@@ -67,7 +67,7 @@ public class PlayUtils {
                 mediaPlayer.stop();
             }
             mediaPlayer.reset();
-            mediaPlayer.setDataSource(fileUrl);
+            mediaPlayer.setDataSource(songUrl);
             mediaPlayer.prepare();
             mediaPlayer.start();
         } catch (IOException e) {
@@ -78,8 +78,8 @@ public class PlayUtils {
     }
 
     private void prev(){
-        int key = preferencesSet.getInt(StaticVariate.keyPlayMode, 0);
-        if (key == StaticVariate.ORDER) {
+        int key = preferencesSet.getInt(Variate.keyPlayMode, 0);
+        if (key == Variate.ORDER) {
             //顺序播放
             if (cursor.isFirst()) {
                 cursor.moveToLast();
@@ -87,7 +87,7 @@ public class PlayUtils {
             } else {
                 cursor.moveToPosition(--position);
             }
-        } else if (key == StaticVariate.RANDOM) {
+        } else if (key == Variate.RANDOM) {
             //随机播放
             do {
                 position = (int) (Math.random() * cursor.getCount());

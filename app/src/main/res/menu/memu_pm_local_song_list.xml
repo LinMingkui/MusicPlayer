@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/item_add_favorite"
+        android:icon="@drawable/ic_favorite_no"
+        android:iconTint="@color/sub_text"
+        android:title="添加到收藏" />
+    <item
+        android:id="@+id/item_add_song_menu"
+        android:icon="@drawable/ic_add_song_menu"
+        android:iconTint="@color/sub_text"
+        android:title="添加到歌单" />
+    <item
+        android:id="@+id/item_delete"
+        android:icon="@drawable/ic_delete"
+        android:iconTint="@color/sub_text"
+        android:title="从列表移除" />
+</menu>

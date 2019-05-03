@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/item_scan_local_song"
+        android:icon="@drawable/ic_search"
+        android:title="扫描本地音乐" />
+    <item
+        android:id="@+id/item_select_sort_way"
+        android:icon="@drawable/ic_sort"
+        android:title="选择排序方式">
+        <menu>
+            <item
+                android:id="@+id/item_sort_by_name_asc"
+                android:checkable="true"
+                android:icon="@drawable/ic_sort_by_name_asc"
+                android:title="按歌曲名正序" />
+            <item
+                android:id="@+id/item_sort_by_name_desc"
+                android:checkable="true"
+                android:icon="@drawable/ic_sort_by_name_desc"
+                android:title="按歌曲名逆序" />
+            <item
+                android:id="@+id/item_sort_by_singer_asc"
+                android:icon="@drawable/ic_sort_by_name_asc"
+                android:checkable="true"
+                android:title="按歌手名正序" />
+            <item
+                android:id="@+id/item_sort_by_singer_desc"
+                android:icon="@drawable/ic_sort_by_name_desc"
+                android:checkable="true"
+                android:title="按歌手名逆序" />
+            <item
+                android:id="@+id/item_sort_by_time_asc"
+                android:icon="@drawable/ic_sort_by_time_asc"
+                android:checkable="true"
+                android:title="按添加时间正序" />
+            <item
+                android:id="@+id/item_sort_by_time_desc"
+                android:icon="@drawable/ic_sort_by_time_desc"
+                android:checkable="true"
+                android:title="按添加时间逆序" />
+        </menu>
+    </item>
+</menu>

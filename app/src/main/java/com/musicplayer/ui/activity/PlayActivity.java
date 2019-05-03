@@ -1,8 +1,10 @@
 package com.musicplayer.ui.activity;
 
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -10,14 +12,11 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.AudioManager;
 import android.os.Build;
-import android.os.Handler;
-import android.os.Message;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
@@ -31,33 +30,27 @@ import com.musicplayer.service.PlayService;
 import com.musicplayer.ui.fragment.LyricFragment;
 import com.musicplayer.ui.fragment.SingerFragment;
 import com.musicplayer.utils.BaseActivity;
-import com.musicplayer.utils.BitmapUtils;
-import com.musicplayer.utils.StaticVariate;
 import com.musicplayer.utils.TimeUtils;
+import com.musicplayer.utils.Variate;
 
 import crossoverone.statuslib.StatusUtil;
 
-import static com.musicplayer.utils.MethodUtils.insertSong;
+import static com.musicplayer.utils.MethodUtils.addSong;
 
-public class PlayActivity extends BaseActivity implements View.OnClickListener {
+public class PlayActivity extends BaseActivity implements View.OnClickListener, PlayService.OnPlaySongChangeListener, PlayService.OnPlayStateChangeListener, PlayService.OnProgressListener {
 
     private Context mContext;
+    private PlayService playService;
+    private IBinder iBinder;
     public static boolean isClickLrcView = false;
+    public boolean run = true;
     private static final String TAG = "*PlayActivity";
-    private static final int PLAY = 0;
-    private static final int PAUSE = 1;
-    private static final int SET_SINGER_IMG = 2;
-    private static final int BACK_TO_SINGER = 3;
-    private static boolean isSetSingerImg;
-    private boolean run;
-    private boolean isSetProgress = true;
     private boolean isFirstOpen = true;
     private int playView = 1;
     private int maxVolume;
     private int currentVolume;
     private DataBase dataBase;
     private SQLiteDatabase db;
-    private ChangeUIThread changeUIThread;
     private Cursor playCursor;
     private Bitmap bitmap;
 
@@ -66,16 +59,15 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener {
     private SharedPreferences.Editor editorSet;
 
     private LinearLayout linearLayoutPlay;
-    private FrameLayout frameLayoutPlay;
     private SingerFragment singerFragment;
     private LyricFragment lyricFragment;
 
     private ImageView imgBackground;
     private ImageView imgBack;
     private ImageView imgFavorite;
-    private ImageView imgPlayMode, imgPrev, imgPlayOrPause, imgNext, imgPlayList;
+    private ImageView imgPlayMode, imgPrev, imgPlay, imgNext, imgPlayList;
     private SeekBar seekBarPlay, seekBarVolume;
-    private TextView textTitle, textSinger;
+    private TextView textName, textSinger;
     private TextView textDuration, textProgress;
 
     @Override
@@ -95,34 +87,33 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener {
         setOnClickListener();
 
         setPlayModeIcon();
-        textTitle.setText(preferencesPlayList.getString("playTitle", "用心聆听"));
-        textSinger.setText(preferencesPlayList.getString("playSinger", "用心聆听"));
+        textName.setText(preferencesPlayList.getString(Variate.keySongName, "用心聆听"));
+        textSinger.setText(preferencesPlayList.getString(Variate.keySinger, "用心聆听"));
+        new Thread(() -> {
+            while (run) {
+                if (isClickLrcView) {
+                    switchFragment();
+                    isClickLrcView = false;
+                }
+            }
+        }).start();
         //播放进度控制
         seekBarPlay.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                textProgress.setText(TimeUtils.transformTime(progress * StaticVariate.playDuration / 1000));
+                if (fromUser && playService != null){
+                    playService.seekTo(progress);
+                }
             }
-
             @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-                isSetProgress = false;
-                Log.e("*********", "seekBar开始");
-            }
-
+            public void onStartTrackingTouch(SeekBar seekBar) { }
             @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                StaticVariate.setPlayProgress = seekBar.getProgress() * StaticVariate.playDuration / 1000;
-                StaticVariate.isSetProgress = true;
-                isSetProgress = true;
-                Log.e("*********", "seekBar结束");
-            }
+            public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
         //音量调节
         seekBarVolume.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
-
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
@@ -131,32 +122,26 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener {
                     currentVolume = progress;
                 }
             }
-
             @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-            }
-
+            public void onStartTrackingTouch(SeekBar seekBar) { }
             @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-            }
+            public void onStopTrackingTouch(SeekBar seekBar) { }
         });
     }
 
     private void init() {
-        mContext = this;
-        preferencesPlayList = getSharedPreferences(StaticVariate.playList, MODE_PRIVATE);
-        preferencesSet = getSharedPreferences(StaticVariate.keySet, MODE_PRIVATE);
+        mContext = PlayActivity.this;
+        preferencesPlayList = getSharedPreferences(Variate.playList, MODE_PRIVATE);
+        preferencesSet = getSharedPreferences(Variate.set, MODE_PRIVATE);
         editorSet = preferencesSet.edit();
 
-        dataBase = new DataBase(this, StaticVariate.dataBaseName,
+        dataBase = new DataBase(this, Variate.dataBaseName,
                 null, 1);
         db = dataBase.getWritableDatabase();
 
-        StaticVariate.isSetFavoriteIcon = true;
-        isSetSingerImg = true;
+        Variate.isSetFavoriteIcon = true;
 
         linearLayoutPlay = findViewById(R.id.ll_play);
-        frameLayoutPlay = findViewById(R.id.fragment_play);
 
         seekBarPlay = findViewById(R.id.seekbar_play);
         seekBarVolume = findViewById(R.id.seekbar_volume);
@@ -173,10 +158,10 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener {
         imgFavorite = findViewById(R.id.img_favorite);
         imgPlayMode = findViewById(R.id.img_play_mode);
         imgPrev = findViewById(R.id.img_prev);
-        imgPlayOrPause = findViewById(R.id.img_play_or_pause);
+        imgPlay = findViewById(R.id.img_play);
         imgNext = findViewById(R.id.img_next);
         imgPlayList = findViewById(R.id.img_play_list);
-        textTitle = findViewById(R.id.text_title);
+        textName = findViewById(R.id.text_title);
         textSinger = findViewById(R.id.text_singer);
         textDuration = findViewById(R.id.text_duration);
         textProgress = findViewById(R.id.text_progress);
@@ -198,10 +183,6 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener {
             } else {
                 wh = (int) (height * 6 / 7.0);
             }
-//        ViewGroup.LayoutParams params = frameLayoutPlay.getLayoutParams();
-//        params.height = wh;
-//        params.width = wh;
-//        frameLayoutPlay.setLayoutParams(params);
             singerFragment = SingerFragment.newInstance(wh);
             getSupportFragmentManager().beginTransaction()
                     .add(R.id.fragment_play, singerFragment).commitAllowingStateLoss();
@@ -214,7 +195,7 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener {
         imgFavorite.setOnClickListener(this);
         imgPlayMode.setOnClickListener(this);
         imgPrev.setOnClickListener(this);
-        imgPlayOrPause.setOnClickListener(this);
+        imgPlay.setOnClickListener(this);
         imgNext.setOnClickListener(this);
         imgPlayList.setOnClickListener(this);
 
@@ -228,70 +209,74 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener {
                 PlayActivity.this.finish();
                 break;
             case R.id.img_prev:
-                StaticVariate.isPrev = true;
-                if (StaticVariate.isFistPlay) {
-                    Intent intent = new Intent(mContext, PlayService.class);
-                    startService(intent);
+                if (!Variate.isFistPlay) {
+                    playService.prevSong();
                 }
                 break;
-            case R.id.img_play_or_pause:
-                if (StaticVariate.isFistPlay) {
+            case R.id.img_play:
+                if (Variate.isFistPlay) {
                     Intent intent = new Intent(mContext, PlayService.class);
                     startService(intent);
                 } else {
-                    StaticVariate.isPlayOrPause = true;
-                    StaticVariate.isPause = true;
-                    Log.e("*****", "播放");
+                    if (playService.isPlay()) {
+                        playService.pause();
+                    } else {
+                        playService.play();
+                    }
                 }
                 break;
             case R.id.img_next:
-                StaticVariate.isNext = true;
-                if (StaticVariate.isFistPlay) {
-                    Intent intent = new Intent(mContext, PlayService.class);
-                    startService(intent);
+                if (!Variate.isFistPlay) {
+                    playService.nextSong();
                 }
                 break;
 
             //收藏
             case R.id.img_favorite:
-                Cursor favoriteCursor = db.rawQuery("select * from " + StaticVariate.
-                                favoriteSongListTable + " where fileUrl = ?",
-                        new String[]{preferencesPlayList.getString(StaticVariate.fileUrl, "")});
+                Cursor favoriteCursor = db.rawQuery("select * from " + Variate.
+                                favoriteSongListTable + " where " + Variate.keySongUrl + " = ?",
+                        new String[]{preferencesPlayList.getString(Variate.keySongUrl, "")});
                 if (favoriteCursor.getCount() == 0) {
-                    favoriteCursor = db.rawQuery("select * from " + StaticVariate.localSongListTable
-                                    + " where fileUrl = ?",
-                            new String[]{preferencesPlayList.getString(StaticVariate.fileUrl, "")});
-                    favoriteCursor.moveToFirst();
-                    insertSong(db, StaticVariate.favoriteSongListTable, favoriteCursor, true);
-                    favoriteCursor.close();
-                    Toast.makeText(mContext, "已添加至我的收藏", Toast.LENGTH_SHORT).show();
+                    favoriteCursor = db.rawQuery("select * from "
+                                    + Variate.localSongListTable
+                                    + " where " + Variate.keySongUrl + " = ?",
+                            new String[]{preferencesPlayList.getString(Variate.keySongUrl, "")});
+                    Log.e(TAG,preferencesPlayList.getString(Variate.keySongUrl, ""));
+                    if (favoriteCursor.getCount() != 0) {
+                        favoriteCursor.moveToFirst();
+                        addSong(db, Variate.favoriteSongListTable, favoriteCursor);
+                        favoriteCursor.close();
+                        imgFavorite.setImageResource(R.drawable.ic_favorite_yes);
+                        Toast.makeText(mContext, "已添加至我的收藏", Toast.LENGTH_SHORT).show();
+                    }else {
+                        Toast.makeText(mContext, "歌曲不存在", Toast.LENGTH_SHORT).show();
+                    }
                 } else {
-                    db.delete(StaticVariate.favoriteSongListTable, StaticVariate.fileUrl + " = ?",
-                            new String[]{preferencesPlayList.getString(StaticVariate.fileUrl, "")});
+                    db.delete(Variate.favoriteSongListTable, Variate.keySongUrl + " = ?",
+                            new String[]{preferencesPlayList.getString(Variate.keySongUrl, "")});
+                    imgFavorite.setImageResource(R.drawable.ic_favorite_no);
                     Toast.makeText(mContext, "已从我的收藏移除", Toast.LENGTH_SHORT).show();
                 }
-                StaticVariate.isSetFavoriteIcon = true;
-//                StaticVariate.isSetListPlayIcon = true;
-
+                Variate.isSetFavoriteIcon = true;
                 //发送更新通知广播
-                sendBroadcast(new Intent(StaticVariate.ACTION_UPDATE));
+                sendBroadcast(new Intent(Variate.ACTION_UPDATE));
                 break;
 
             //切换播放模式
             case R.id.img_play_mode:
-                int key = preferencesSet.getInt(StaticVariate.keyPlayMode, 0);
-                if (key == StaticVariate.ORDER) {
-                    editorSet.putInt(StaticVariate.keyPlayMode, StaticVariate.RANDOM);
+                int key = preferencesSet.getInt(Variate.keyPlayMode, 0);
+                if (key == Variate.ORDER) {
+                    editorSet.putInt(Variate.keyPlayMode, Variate.RANDOM);
                     editorSet.apply();
                     imgPlayMode.setImageResource(R.drawable.ic_random_play);
                     Toast.makeText(this, "随机播放", Toast.LENGTH_SHORT).show();
-                } else if (key == StaticVariate.RANDOM) {
-                    editorSet.putInt(StaticVariate.keyPlayMode, StaticVariate.SINGLE);
+                } else if (key == Variate.RANDOM) {
+                    editorSet.putInt(Variate.keyPlayMode, Variate.SINGLE);
                     editorSet.apply();
                     imgPlayMode.setImageResource(R.drawable.ic_single_cycle);
                     Toast.makeText(this, "单曲循环", Toast.LENGTH_SHORT).show();
-                } else if (key == StaticVariate.SINGLE) {
-                    editorSet.putInt(StaticVariate.keyPlayMode, StaticVariate.ORDER);
+                } else if (key == Variate.SINGLE) {
+                    editorSet.putInt(Variate.keyPlayMode, Variate.ORDER);
                     editorSet.apply();
                     imgPlayMode.setImageResource(R.drawable.ic_order_play);
                     Toast.makeText(this, "顺序播放", Toast.LENGTH_SHORT).show();
@@ -301,139 +286,62 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener {
             //切换歌手图片和歌词界面
             case R.id.ll_play:
                 Log.e(TAG, "点击播放界面");
-                if (playView == 1) {
-                    if (lyricFragment == null) {
-                        lyricFragment = new LyricFragment();
-                    }
-                    getSupportFragmentManager().beginTransaction()
-                            .replace(R.id.fragment_play, lyricFragment).commitAllowingStateLoss();
-                    playView = 2;
-                } else if (playView == 2) {
-                    getSupportFragmentManager().beginTransaction()
-                            .replace(R.id.fragment_play, singerFragment).commitAllowingStateLoss();
-                    playView = 1;
-                }
-
+                switchFragment();
                 break;
 
         }
     }
 
-    class ChangeUIThread extends Thread {
-
-        public void run() {
-            Log.e(TAG, "changeUIThread start");
-            while (run) {
-                if (StaticVariate.isPlay) {
-                    Message message = new Message();
-                    message.what = PLAY;
-                    changeUIHandler.sendMessage(message);
-
-                } else {
-                    Message message = new Message();
-                    message.what = PAUSE;
-                    changeUIHandler.sendMessage(message);
-                }
-                if (!isSetSingerImg) {
-                    try {
-                        sleep(100);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    bitmap = setBackground();
-                    Message message = new Message();
-                    message.what = SET_SINGER_IMG;
-                    changeUIHandler.sendMessage(message);
-                }
-                if (isClickLrcView){
-                    Message message = new Message();
-                    message.what = BACK_TO_SINGER;
-                    changeUIHandler.sendMessage(message);
-                    isClickLrcView = false;
-                }
+    private void switchFragment() {
+        if (playView == 1) {
+            if (lyricFragment == null) {
+                lyricFragment = new LyricFragment();
             }
-            Log.e(TAG, "changeUIThread close");
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_play, lyricFragment).commitAllowingStateLoss();
+            playView = 2;
+        } else if (playView == 2) {
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_play, singerFragment).commitAllowingStateLoss();
+            playView = 1;
         }
-
     }
 
-    private Handler changeUIHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(Message msg) {
-            switch (msg.what) {
-                case PLAY:
-                    imgPlayOrPause.setImageResource(R.drawable.ic_pause);
-                    textDuration.setText(TimeUtils.transformTime(StaticVariate.playDuration));
-                    if (isSetProgress) {
-                        textProgress.setText(TimeUtils.transformTime(StaticVariate.playProgress));
-                        seekBarPlay.setProgress(StaticVariate.playProgress * 1000 / StaticVariate.playDuration);
-                    }
-                    if (textTitle.getText() != preferencesPlayList.
-                            getString(StaticVariate.keyPlayTitle, StaticVariate.unKnown) &&
-                            textSinger.getText() != preferencesPlayList.
-                                    getString(StaticVariate.keyPlaySinger, StaticVariate.unKnown)) {
-                        textTitle.setText(preferencesPlayList.getString(
-                                StaticVariate.keyPlayTitle, StaticVariate.unKnown));
-                        textSinger.setText(preferencesPlayList.getString(
-                                StaticVariate.keyPlaySinger, StaticVariate.unKnown));
-                    }
-                    //设置收藏图标
-                    synchronized (this) {
-                        if (StaticVariate.isSetFavoriteIcon && run) {
-                            playCursor = db.rawQuery("select * from " + StaticVariate.
-                                            favoriteSongListTable + " where fileUrl = ?",
-                                    new String[]{preferencesPlayList.getString(StaticVariate.fileUrl, "")});
-                            if (playCursor.getCount() == 0) {
-                                imgFavorite.setImageResource(R.drawable.ic_favorite_no);
-                            } else {
-                                imgFavorite.setImageResource(R.drawable.ic_favorite_yes);
-                            }
-                            StaticVariate.isSetFavoriteIcon = false;
-                        }
-                    }
-                    break;
-                case PAUSE:
-                    imgPlayOrPause.setImageResource(R.drawable.ic_play);
-                    //设置收藏图标
-                    synchronized (this) {
-                        if (StaticVariate.isSetFavoriteIcon && run) {
-                            playCursor = db.rawQuery("select * from " + StaticVariate.
-                                            favoriteSongListTable + " where fileUrl = ?",
-                                    new String[]{preferencesPlayList.getString(StaticVariate.fileUrl, "")});
-                            if (playCursor.getCount() == 0) {
-                                imgFavorite.setImageResource(R.drawable.ic_favorite_no);
-                            } else {
-                                imgFavorite.setImageResource(R.drawable.ic_favorite_yes);
-                            }
-                            StaticVariate.isSetFavoriteIcon = false;
-                        }
-                    }
-                    break;
-                case SET_SINGER_IMG:
-                    imgBackground.setImageBitmap(bitmap);
-                    bitmap = null;
-                    isSetSingerImg = false;
-                    break;
-                case BACK_TO_SINGER:
-                    getSupportFragmentManager().beginTransaction()
-                            .replace(R.id.fragment_play, singerFragment).commitAllowingStateLoss();
-                    playView = 1;
-                    break;
+    @Override
+    public void OnPlaySongChange(Cursor cursor) {
+        Log.e(TAG,"OnPlaySongChange");
+        textName.setText(cursor.getString(cursor.getColumnIndex(Variate.keySongName)));
+        textSinger.setText(cursor.getString(cursor.getColumnIndex(Variate.keySinger)));
+        if (db != null && dataBase != null) {
+            playCursor = db.rawQuery("select * from " + Variate.
+                            favoriteSongListTable + " where " + Variate.keySongUrl + " = ?",
+                    new String[]{preferencesPlayList.getString(Variate.keySongUrl, "")});
+            if (playCursor.getCount() == 0) {
+                imgFavorite.setImageResource(R.drawable.ic_favorite_no);
+            } else {
+                imgFavorite.setImageResource(R.drawable.ic_favorite_yes);
             }
-            return false;
         }
-    });
+    }
 
-    //    private void initReceiver() {
-//        //注册广播
-//        receiver = new PlayService.UpdateNotificationReceiver();
-//        IntentFilter intentFilter = new IntentFilter();
-//        intentFilter.addAction(StaticVariate.ACTION_DOWN);
-//        registerReceiver(receiver, intentFilter);
-//        Intent favoriteIntent = new Intent(StaticVariate.ACTION_DOWN);
-//    }
+    @Override
+    public void OnPlayStateChange(boolean isPlay) {
+        if (isPlay) {
+            imgPlay.setImageResource(R.drawable.ic_pause);
+        } else {
+            imgPlay.setImageResource(R.drawable.ic_play);
+        }
+    }
 
+    @Override
+    public void onProgress(int duration, int current) {
+        runOnUiThread(() -> {
+            textDuration.setText(TimeUtils.transformTime(duration));
+            textProgress.setText(TimeUtils.transformTime(current));
+            seekBarPlay.setProgress(current);
+            seekBarPlay.setMax(duration);
+        });
+    }
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
@@ -456,55 +364,83 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener {
     }
 
     public static class UIReceiver extends BroadcastReceiver {
-
         @Override
         public void onReceive(Context context, Intent intent) {
             switch (intent.getAction()) {
-                case StaticVariate.ACTION_PREV:
+                case Variate.ACTION_PREV:
                     Log.e(TAG, "广播接收 上一曲");
-                case StaticVariate.ACTION_NEXT:
+                case Variate.ACTION_NEXT:
                     Log.e(TAG, "广播接收 下一曲");
-                    isSetSingerImg = true;
                     break;
             }
         }
     }
 
-
     private Bitmap setBackground() {
-
         return NativeStackBlur.process(BitmapFactory.decodeResource(getResources(),
                 R.drawable.img_default_play_background), 25);
 
     }
 
     private void setPlayModeIcon() {
-        int key = preferencesSet.getInt(StaticVariate.keyPlayMode, 0);
-        if (key == StaticVariate.ORDER) {
+        int key = preferencesSet.getInt(Variate.keyPlayMode, 0);
+        if (key == Variate.ORDER) {
             imgPlayMode.setImageResource(R.drawable.ic_order_play);
-        } else if (key == StaticVariate.RANDOM) {
+        } else if (key == Variate.RANDOM) {
             imgPlayMode.setImageResource(R.drawable.ic_random_play);
-        } else if (key == StaticVariate.SINGLE) {
+        } else if (key == Variate.SINGLE) {
             imgPlayMode.setImageResource(R.drawable.ic_single_cycle);
         }
     }
 
+    private ServiceConnection connection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            iBinder = service;
+            playService = ((PlayService.PlayBinder) service).getService();
+            playService.setOnPlaySongChangeListener(PlayActivity.this);
+            playService.setOnPlayStateChangeListener(PlayActivity.this);
+            playService.setOnProgressListener(PlayActivity.this);
+            if (playService.isPlay()) {
+                imgPlay.setImageResource(R.drawable.ic_pause);
+            }
+            textDuration.setText(TimeUtils.transformTime(playService.getDuration()));
+            textProgress.setText(TimeUtils.transformTime(playService.getProgress()));
+            seekBarPlay.setMax(playService.getDuration());
+            seekBarPlay.setProgress(playService.getProgress());
+            playCursor = db.rawQuery("select * from " + Variate.
+                            favoriteSongListTable + " where " + Variate.keySongUrl + " = ?",
+                    new String[]{preferencesPlayList.getString(Variate.keySongUrl, "")});
+            if (playCursor.getCount() == 0) {
+                imgFavorite.setImageResource(R.drawable.ic_favorite_no);
+            } else {
+                imgFavorite.setImageResource(R.drawable.ic_favorite_yes);
+            }
+            Log.e(TAG, "onServiceConnected");
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            Log.e(TAG, "onServiceDisconnected");
+        }
+    };
+
     @Override
     protected void onStart() {
         super.onStart();
-        run = true;
-        changeUIThread = new ChangeUIThread();
-        changeUIThread.start();
+        Intent intent = new Intent(mContext, PlayService.class);
+        bindService(intent, connection, BIND_ABOVE_CLIENT);
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
-        run = false;
+    protected void onPause() {
+        unbindService(connection);
+        super.onPause();
     }
 
     protected void onDestroy() {
         super.onDestroy();
+        run = false;
         synchronized (this) {
             db.close();
             dataBase.close();

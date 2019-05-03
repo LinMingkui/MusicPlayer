@@ -1,7 +1,6 @@
 package com.musicplayer.ui.fragment;
 
 import android.content.Context;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -11,7 +10,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -23,7 +21,6 @@ import com.musicplayer.utils.Song;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.w3c.dom.Text;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -147,7 +144,7 @@ public class QQSearchListFragment extends Fragment implements QQMusicListAdapter
                         builderSinger.deleteCharAt(builderSinger.lastIndexOf("/"));
 //                    Log.e(TAG, "songName:" + songName + " /singer:" + builderSinger.toString() + " /songMid:" + songMid);
                         Song song = new Song();
-                        song.setTitle(songName);
+                        song.setSongName(songName);
                         song.setSinger(builderSinger.toString());
                         song.setQQSongMid(songMid);
                         songList.add(song);
@@ -180,7 +177,7 @@ public class QQSearchListFragment extends Fragment implements QQMusicListAdapter
     //音乐列表item点击事件
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        Toast.makeText(getActivity(), songList.get(position).getTitle(), Toast.LENGTH_SHORT).show();
+        Toast.makeText(getActivity(), songList.get(position).getSongName(), Toast.LENGTH_SHORT).show();
     }
 
     //音乐列表item imgMenu点击事件

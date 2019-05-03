@@ -19,12 +19,33 @@
         <ListView
             android:id="@+id/list_local_song"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:dividerHeight="0.5dp"/>
+        <LinearLayout
+            android:id="@+id/ll_loading"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_gravity="center"
+            android:visibility="gone">
+            <ProgressBar
+                style="@android:style/Widget.ProgressBar.Small"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:textColor="@color/sub_text"
+                android:text="正在初始化，请稍后..." />
+        </LinearLayout>
 
     </LinearLayout>
 
     <com.musicplayer.ui.widget.PlayBarLayout
+        android:id="@+id/play_bar_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
 

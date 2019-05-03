@@ -3,16 +3,24 @@ package com.musicplayer.utils;
 public class Song {
 
     private String fileName;
-    private String title;
+    private String songName;
     private int duration;
     private String singer;
     private String album;
     private String year;
     private String type;
     private String size;
-    private String fileUrl;
+    private String songUrl;
 
     private String QQSongMid;
+
+    public String getSongUrl() {
+        return songUrl;
+    }
+
+    public void setSongUrl(String songUrl) {
+        this.songUrl = songUrl;
+    }
 
     public String getQQSongMid() {
         return QQSongMid;
@@ -29,12 +37,12 @@ public class Song {
         this.fileName = fileName;
     }
 
-    public String getTitle() {
-        return title;
+    public String getSongName() {
+        return songName;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
+    public void setSongName(String songName) {
+        this.songName = songName;
     }
 
     public int getDuration() {
@@ -85,38 +93,31 @@ public class Song {
         this.size = size;
     }
 
-    public String getFileUrl() {
-        return fileUrl;
-    }
-
-    public void setFileUrl(String fileUrl) {
-        this.fileUrl = fileUrl;
-    }
-
     public Song() {
         super();
     }
 
-    public Song(String fileName, String title, int duration, String singer,
-                String album, String year, String type, String size, String fileUrl) {
+    public Song(String fileName, String songName, int duration, String singer,
+                String album, String year, String type, String size, String songUrl) {
         super();
         this.fileName = fileName;
-        this.title = title;
+        this.songName = songName;
         this.duration = duration;
         this.singer = singer;
         this.album = album;
         this.year = year;
         this.type = type;
         this.size = size;
-        this.fileUrl = fileUrl;
+        this.songUrl = songUrl;
     }
 
     @Override
     public String toString() {
-        return "Song [fileName=" + fileName + ", title=" + title
+        return "Song [fileName=" + fileName + ", songName=" + songName
                 + ", duration=" + duration + ", singer=" + singer + ", album="
                 + album + ", year=" + year + ", type=" + type + ", size="
-                + size + ", fileUrl=" + fileUrl + "]";
+                + size + ", songUrl=" + songUrl + "]";
     }
+
 
 }

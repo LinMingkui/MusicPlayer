@@ -23,7 +23,6 @@ import android.text.Layout.Alignment;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
@@ -36,12 +35,11 @@ import com.lauzy.freedom.library.Lrc;
 import com.lauzy.freedom.library.LrcHelper;
 import com.lauzy.freedom.library.R.drawable;
 import com.lauzy.freedom.library.R.styleable;
-import com.musicplayer.ui.activity.PlayActivity;
 
 import java.util.HashMap;
 import java.util.List;
 
-public class LrcView extends View {
+public class SingleLrcView extends View {
     private static final String DEFAULT_CONTENT = "Empty";
     private List<Lrc> mLrcData;
     private TextPaint mTextPaint;
@@ -84,33 +82,33 @@ public class LrcView extends View {
     private Runnable mScrollRunnable;
     private Runnable mHideIndicatorRunnable;
     private HashMap<String, StaticLayout> mStaticLayoutHashMap;
-    private LrcView.OnPlayIndicatorLineListener mOnPlayIndicatorLineListener;
+    private SingleLrcView.OnPlayIndicatorLineListener mOnPlayIndicatorLineListener;
 
     boolean isDownAction;
 
-    public LrcView(Context context) {
+    public SingleLrcView(Context context) {
         this(context, (AttributeSet)null);
     }
 
-    public LrcView(Context context, @Nullable AttributeSet attrs) {
+    public SingleLrcView(Context context, @Nullable AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public LrcView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+    public SingleLrcView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         this.isAutoAdjustPosition = true;
         this.isEnableShowIndicator = true;
         this.mLrcMap = new HashMap();
         this.mScrollRunnable = new Runnable() {
             public void run() {
-                LrcView.this.isUserScroll = false;
-                LrcView.this.scrollToPosition(LrcView.this.mCurrentLine);
+                SingleLrcView.this.isUserScroll = false;
+                SingleLrcView.this.scrollToPosition(SingleLrcView.this.mCurrentLine);
             }
         };
         this.mHideIndicatorRunnable = new Runnable() {
             public void run() {
-                LrcView.this.isShowTimeIndicator = false;
-                LrcView.this.invalidateView();
+                SingleLrcView.this.isShowTimeIndicator = false;
+                SingleLrcView.this.invalidateView();
             }
         };
         this.mStaticLayoutHashMap = new HashMap();
@@ -302,8 +300,8 @@ public class LrcView extends View {
         ValueAnimator animator = ValueAnimator.ofFloat(new float[]{this.mOffset, scrollY});
         animator.addUpdateListener(new AnimatorUpdateListener() {
             public void onAnimationUpdate(ValueAnimator animation) {
-                LrcView.this.mOffset = (Float)animation.getAnimatedValue();
-                LrcView.this.invalidateView();
+                SingleLrcView.this.mOffset = (Float)animation.getAnimatedValue();
+                SingleLrcView.this.invalidateView();
             }
         });
         animator.setDuration(300L);
@@ -352,69 +350,69 @@ public class LrcView extends View {
         return this.mOffset > this.getItemOffsetY(this.getLrcCount() - 1) || this.mOffset < 0.0F;
     }
 
-    public boolean onTouchEvent(MotionEvent event) {
-
-        if (this.isLrcEmpty()) {
-            return super.onTouchEvent(event);
-        } else {
-            if (this.mVelocityTracker == null) {
-                this.mVelocityTracker = VelocityTracker.obtain();
-            }
-
-            this.mVelocityTracker.addMovement(event);
-            switch(event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                this.removeCallbacks(this.mScrollRunnable);
-                this.removeCallbacks(this.mHideIndicatorRunnable);
-                if (!this.mOverScroller.isFinished()) {
-                    this.mOverScroller.abortAnimation();
-                }
-
-                this.mLastMotionX = event.getX();
-                this.mLastMotionY = event.getY();
-                this.isUserScroll = true;
-                this.isDragging = false;
-                isDownAction = true;
-                break;
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL:
-                Log.e("*LrcView","ACTION_CANCEL "+isDownAction);
-                if (!this.isDragging && (!this.isShowTimeIndicator || !this.onClickPlayButton(event))) {
-                    this.isShowTimeIndicator = false;
-                    this.invalidateView();
-                    this.performClick();
-                }
-                this.handleActionUp(event);
-                if (isDownAction && !onClickPlayButton(event)){
-//                    return super.onTouchEvent(event);
-                    PlayActivity.isClickLrcView = true;
-                }
-                break;
-            case MotionEvent.ACTION_MOVE:
-//                Log.e("*LrcView","滑动");
-                float moveY = event.getY() - this.mLastMotionY;
-                if (Math.abs(moveY) > (float)this.mScaledTouchSlop) {
-                    this.isDragging = true;
-                    this.isShowTimeIndicator = this.isEnableShowIndicator;
-                }
-
-                if (this.isDragging) {
-                    float maxHeight = this.getItemOffsetY(this.getLrcCount() - 1);
-                    if (this.mOffset < 0.0F || this.mOffset > maxHeight) {
-                        moveY /= 3.5F;
-                    }
-
-                    this.mOffset -= moveY;
-                    this.mLastMotionY = event.getY();
-                    this.invalidateView();
-                }
-                isDownAction = false;
-                break;
-            }
-
-            return true;
-        }
-    }
+//    public boolean onTouchEvent(MotionEvent event) {
+//
+//        if (this.isLrcEmpty()) {
+//            return super.onTouchEvent(event);
+//        } else {
+//            if (this.mVelocityTracker == null) {
+//                this.mVelocityTracker = VelocityTracker.obtain();
+//            }
+//
+//            this.mVelocityTracker.addMovement(event);
+//            switch(event.getAction()) {
+//            case MotionEvent.ACTION_DOWN:
+//                this.removeCallbacks(this.mScrollRunnable);
+//                this.removeCallbacks(this.mHideIndicatorRunnable);
+//                if (!this.mOverScroller.isFinished()) {
+//                    this.mOverScroller.abortAnimation();
+//                }
+//
+//                this.mLastMotionX = event.getX();
+//                this.mLastMotionY = event.getY();
+//                this.isUserScroll = true;
+//                this.isDragging = false;
+//                isDownAction = true;
+//                break;
+//            case MotionEvent.ACTION_UP:
+//            case MotionEvent.ACTION_CANCEL:
+//                Log.e("*LrcView","ACTION_CANCEL "+isDownAction);
+//                if (!this.isDragging && (!this.isShowTimeIndicator || !this.onClickPlayButton(event))) {
+//                    this.isShowTimeIndicator = false;
+//                    this.invalidateView();
+//                    this.performClick();
+//                }
+//                this.handleActionUp(event);
+//                if (isDownAction && !onClickPlayButton(event)){
+////                    return super.onTouchEvent(event);
+//                    PlayActivity.isClickLrcView = true;
+//                }
+//                break;
+//            case MotionEvent.ACTION_MOVE:
+////                Log.e("*LrcView","滑动");
+//                float moveY = event.getY() - this.mLastMotionY;
+//                if (Math.abs(moveY) > (float)this.mScaledTouchSlop) {
+//                    this.isDragging = true;
+//                    this.isShowTimeIndicator = this.isEnableShowIndicator;
+//                }
+//
+//                if (this.isDragging) {
+//                    float maxHeight = this.getItemOffsetY(this.getLrcCount() - 1);
+//                    if (this.mOffset < 0.0F || this.mOffset > maxHeight) {
+//                        moveY /= 3.5F;
+//                    }
+//
+//                    this.mOffset -= moveY;
+//                    this.mLastMotionY = event.getY();
+//                    this.invalidateView();
+//                }
+//                isDownAction = false;
+//                break;
+//            }
+//
+//            return true;
+//        }
+//    }
 
     private void handleActionUp(MotionEvent event) {
         if (this.isEnableShowIndicator) {
@@ -534,7 +532,7 @@ public class LrcView extends View {
 
     }
 
-    public void setOnPlayIndicatorLineListener(LrcView.OnPlayIndicatorLineListener onPlayIndicatorLineListener) {
+    public void setOnPlayIndicatorLineListener(SingleLrcView.OnPlayIndicatorLineListener onPlayIndicatorLineListener) {
         this.mOnPlayIndicatorLineListener = onPlayIndicatorLineListener;
     }
 

@@ -13,10 +13,7 @@ import android.widget.TextView;
 
 import com.musicplayer.R;
 import com.musicplayer.database.DataBase;
-import com.musicplayer.utils.Song;
-import com.musicplayer.utils.StaticVariate;
-
-import java.util.ArrayList;
+import com.musicplayer.utils.Variate;
 
 import static android.content.Context.MODE_PRIVATE;
 import static com.musicplayer.utils.MethodUtils.getSqlBaseOrder;
@@ -27,28 +24,14 @@ public class SongListAdapter extends BaseAdapter {
     private SQLiteDatabase db;
     private int songNumber, playPosition;
     private String table;
-    private String playTable = "";
-    private String fileUrl = "";
+    private String playTable;
+    private String songUrl;
     private Context mContext;
     private SharedPreferences preferencesPlayList;
     private SharedPreferences preferencesSet;
-    private ArrayList<Song> song = null;
-    private Cursor cursor = null;
+    private Cursor cursor;
     private LayoutInflater mLayoutInflater;
     private OnSongListItemMenuClickListener onSongListItemMenuClickListener;
-
-    public SongListAdapter(Context context, ArrayList<Song> song, String table) {
-        mLayoutInflater = LayoutInflater.from(context);
-        this.songNumber = song.size();
-        this.song = song;
-        this.table = table;
-        mContext = context;
-        preferencesPlayList = context.getSharedPreferences(StaticVariate.playList, MODE_PRIVATE);
-        preferencesSet = context.getSharedPreferences(StaticVariate.keySet,MODE_PRIVATE);
-        playPosition = preferencesPlayList.getInt("position", 0);
-        dataBase = new DataBase(mContext, StaticVariate.dataBaseName, null, 1);
-        db = dataBase.getWritableDatabase();
-    }
 
     public SongListAdapter(Context context, Cursor cursor, String table) {
         mLayoutInflater = LayoutInflater.from(context);
@@ -61,12 +44,12 @@ public class SongListAdapter extends BaseAdapter {
         }
         this.table = table;
         mContext = context;
-        preferencesPlayList = context.getSharedPreferences(StaticVariate.playList, MODE_PRIVATE);
-        preferencesSet = context.getSharedPreferences(StaticVariate.keySet,MODE_PRIVATE);
+        preferencesPlayList = context.getSharedPreferences(Variate.playList, MODE_PRIVATE);
+        preferencesSet = context.getSharedPreferences(Variate.set, MODE_PRIVATE);
         playPosition = preferencesPlayList.getInt("position", 0);
-        playTable = preferencesPlayList.getString(StaticVariate.keyListName, StaticVariate.localSongListTable);
-        fileUrl = preferencesPlayList.getString(StaticVariate.fileUrl, "");
-        dataBase = new DataBase(mContext, StaticVariate.dataBaseName, null, 1);
+        playTable = preferencesPlayList.getString(Variate.keyTableName, Variate.localSongListTable);
+        songUrl = preferencesPlayList.getString(Variate.keySongUrl, "");
+        dataBase = new DataBase(mContext, Variate.dataBaseName, null, 1);
         db = dataBase.getWritableDatabase();
     }
 
@@ -99,50 +82,28 @@ public class SongListAdapter extends BaseAdapter {
         } else {
             holder = (ViewHolder) convertView.getTag();
         }
-        if (cursor == null && song != null) {
-            if ((playPosition == position) && playTable.equals(table)) {
-                holder.imgPlaying.setVisibility(View.VISIBLE);
-                holder.textSongPosition.setVisibility(View.GONE);
-            } else {
-                holder.textSongPosition.setText("" + (position + 1));
-                holder.textSongPosition.setVisibility(View.VISIBLE);
-                holder.imgPlaying.setVisibility(View.GONE);
-
-            }
-            holder.textSongName.setText(song.get(position).getTitle());
-            holder.textSinger.setText(song.get(position).getSinger());
-            holder.imgSongListMenu.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    onSongListItemMenuClickListener.onSongListItemMenuClick(position);
-                }
-            });
-        } else if (cursor != null) {
-            boolean b ;                  //判断是否设置播放图标
+        if (cursor != null) {
+            boolean b;                  //判断是否设置播放图标
             cursor.moveToPosition(position);
             if (playTable.equals(table)) {
-                if (fileUrl.isEmpty()) {
-                    b = (playPosition == position);
-                } else {
-                    b = fileUrl.equals(cursor.getString(cursor.getColumnIndex(StaticVariate.fileUrl)));
-                }
-            }else {
+                b = songUrl.equals(cursor.getString(cursor.getColumnIndex(Variate.keySongUrl)));
+            } else {
                 b = false;
             }
             if (b) {
                 holder.imgPlaying.setVisibility(View.VISIBLE);
                 holder.textSongPosition.setVisibility(View.GONE);
             } else {
-                holder.textSongPosition.setText("" + (position + 1));
+                holder.textSongPosition.setText(String.valueOf(position + 1));
                 holder.textSongPosition.setVisibility(View.VISIBLE);
                 holder.imgPlaying.setVisibility(View.GONE);
             }
-            holder.textSongName.setText(cursor.getString(1));
-            holder.textSinger.setText(cursor.getString(2));
-            holder.imgSongListMenu.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    onSongListItemMenuClickListener.onSongListItemMenuClick(position);
+            holder.textSongName.setText(cursor.getString(cursor.getColumnIndex(Variate.keySongName)));
+            holder.textSinger.setText(cursor.getString(cursor.getColumnIndex(Variate.keySinger)));
+            View view = convertView;
+            holder.imgSongListMenu.setOnClickListener(v -> {
+                if (onSongListItemMenuClickListener != null) {
+                    onSongListItemMenuClickListener.onSongListItemMenuClick(view, position);
                 }
             });
         }
@@ -158,7 +119,7 @@ public class SongListAdapter extends BaseAdapter {
     }
 
     public interface OnSongListItemMenuClickListener {
-        void onSongListItemMenuClick(int position);
+        void onSongListItemMenuClick(View view, int position);
     }
 
     public void setOnItemMenuClickListener(OnSongListItemMenuClickListener listener) {
@@ -170,17 +131,11 @@ public class SongListAdapter extends BaseAdapter {
     }
 
     public void changeData() {
-        if(table.equals(StaticVariate.recentlySongListTable)){
-            cursor = db.rawQuery("select * from " + table
-                    + " order by " + StaticVariate.addTime
-                    + " desc ", null);
-        }else {
-            cursor = db.rawQuery(getSqlBaseOrder(table,preferencesSet), null);
-        }
+        cursor = db.rawQuery(getSqlBaseOrder(table, preferencesSet), null);
         songNumber = cursor.getCount();
         playPosition = preferencesPlayList.getInt("position", 0);
-        playTable = preferencesPlayList.getString(StaticVariate.keyListName, StaticVariate.localSongListTable);
-        fileUrl = preferencesPlayList.getString(StaticVariate.fileUrl, "");
+        playTable = preferencesPlayList.getString(Variate.keyTableName, Variate.localSongListTable);
+        songUrl = preferencesPlayList.getString(Variate.keySongUrl, "");
     }
 
     public void setPlayPosition() {

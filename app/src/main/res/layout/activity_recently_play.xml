@@ -23,8 +23,8 @@
 
     </LinearLayout>
     <com.musicplayer.ui.widget.PlayBarLayout
+        android:id="@+id/play_bar_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
 
-    <!--<include layout="@layout/layout_play_bar"/>-->
 </LinearLayout>

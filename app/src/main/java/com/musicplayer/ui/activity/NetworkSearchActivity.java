@@ -1,25 +1,23 @@
 package com.musicplayer.ui.activity;
 
+import android.content.Context;
+import android.os.Bundle;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
-import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
-import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.musicplayer.R;
 import com.musicplayer.adapter.TabAdapter;
 import com.musicplayer.ui.fragment.KGSearchListFragment;
 import com.musicplayer.ui.fragment.QQSearchListFragment;
 import com.musicplayer.ui.fragment.WYYSearchListFragment;
+import com.musicplayer.ui.widget.PlayBarLayout;
 import com.musicplayer.utils.BaseActivity;
 
 import java.util.ArrayList;
@@ -28,6 +26,8 @@ import java.util.List;
 public class NetworkSearchActivity extends BaseActivity implements View.OnClickListener {
 
     private String TAG = "*NetworkSearchActivity";
+    private Context mContext;
+    private PlayBarLayout playBarLayout;
     private TabLayout tabLayout;
     private ViewPager viewPager;
     private ImageView imgBack, imgSearch;
@@ -76,6 +76,8 @@ public class NetworkSearchActivity extends BaseActivity implements View.OnClickL
     }
 
     private void initView() {
+        mContext = NetworkSearchActivity.this;
+        playBarLayout = findViewById(R.id.play_bar_layout);
         tabLayout = findViewById(R.id.tab_layout);
         viewPager = findViewById(R.id.view_pager);
         imgBack = findViewById(R.id.img_title_back);
@@ -119,5 +121,10 @@ public class NetworkSearchActivity extends BaseActivity implements View.OnClickL
         listFragment.add(WYYSearchListFragment.newInstance(keyWord));
         viewPager.setAdapter(tabAdapter);
         viewPager.setCurrentItem(item);
+    }
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        playBarLayout.mBindService(mContext);
     }
 }

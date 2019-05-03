@@ -1,23 +1,16 @@
 package com.musicplayer.ui.activity;
 
-import android.app.AlertDialog;
-import android.app.ProgressDialog;
+import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.os.Handler;
-import android.os.Message;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.view.menu.MenuPopupHelper;
 import android.support.v7.widget.PopupMenu;
 import android.util.Log;
-import android.view.Gravity;
-import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -27,11 +20,13 @@ import android.widget.Toast;
 import com.musicplayer.R;
 import com.musicplayer.adapter.SongListAdapter;
 import com.musicplayer.database.DataBase;
+import com.musicplayer.ui.widget.PlayBarLayout;
 import com.musicplayer.utils.BaseActivity;
 import com.musicplayer.utils.Song;
-import com.musicplayer.utils.StaticVariate;
+import com.musicplayer.utils.Variate;
 
-import java.util.ArrayList;
+import java.lang.reflect.Field;
+import java.util.List;
 import java.util.Locale;
 
 import static com.musicplayer.utils.AudioUtils.getAllSongs;
@@ -40,12 +35,12 @@ import static com.musicplayer.utils.MethodUtils.addFavorite;
 import static com.musicplayer.utils.MethodUtils.addSongMenu;
 import static com.musicplayer.utils.MethodUtils.deleteSong;
 import static com.musicplayer.utils.MethodUtils.getSqlBaseOrder;
-import static com.musicplayer.utils.MethodUtils.insertSong;
-import static com.musicplayer.utils.MethodUtils.showOrderPopupMenu;
+import static com.musicplayer.utils.MethodUtils.saveSong;
+import static com.musicplayer.utils.MethodUtils.setPlayMessage;
 
 
 public class LocalSongActivity extends BaseActivity implements View.OnClickListener,
-        SongListAdapter.OnSongListItemMenuClickListener {
+        SongListAdapter.OnSongListItemMenuClickListener, PlayBarLayout.OnPlaySongChangeListener {
 
     private Context mContext;
     private String TAG = "*LocalSongActivity";
@@ -57,20 +52,17 @@ public class LocalSongActivity extends BaseActivity implements View.OnClickListe
     private SharedPreferences preferencesSet;
     private SharedPreferences.Editor editorSet;
 
-    private ListView listLocalMusic;
+    private PlayBarLayout playBarLayout;
+    private ListView lvSong;
     private SongListAdapter songListAdapter;
     private ImageView imgTitleBack, imgTitleSearch, imgTitleMenu;
     private TextView tvTitleName;
-    private LinearLayout linearLayoutTitle;
+    private LinearLayout linearLayoutLoading;
 
-    private SetListPlayIconThread setListPlayIconThread;
-    private ArrayList<Song> song;
+    private List<Song> songs;
     private Cursor cursorSong;
-    private static ProgressDialog progressDialog;
-    private boolean isOver = false;
-    private boolean run = true;
-    private int songListItemPosition;
     private int result = -1;
+    private String sql;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,103 +71,104 @@ public class LocalSongActivity extends BaseActivity implements View.OnClickListe
 
         init();
         setClickListener();
-        String sql = getSqlBaseOrder(StaticVariate.localSongListTable, preferencesSet);
-        Log.e(TAG, sql);
-        cursorSong = db.rawQuery(sql, null);
 
         //初始化本地音乐列表
-        if (cursorSong.getCount() == 0) {
-            song = getAllSongs(this);
-            songListAdapter = new SongListAdapter(mContext,
-                    song, StaticVariate.localSongListTable);
-            listLocalMusic.setAdapter(songListAdapter);
-            SaveSongThread saveSongThread = new SaveSongThread(song);
+        if (preferencesSet.getBoolean(Variate.keyIsInitLocalList, true)) {
+            linearLayoutLoading.setVisibility(View.VISIBLE);
+            songs = getAllSongs(this);
+            SaveSongThread saveSongThread = new SaveSongThread();
             saveSongThread.start();
         } else {
-            isOver = true;
+            sql = getSqlBaseOrder(Variate.localSongListTable, preferencesSet);
+            Log.e(TAG, sql);
+            cursorSong = db.rawQuery(sql, null);
             cursorSong.moveToFirst();
             songListAdapter = new SongListAdapter(LocalSongActivity.this,
-                    cursorSong, StaticVariate.localSongListTable);
-            listLocalMusic.setAdapter(songListAdapter);
+                    cursorSong, Variate.localSongListTable);
+            songListAdapter.setOnItemMenuClickListener(this);
+            lvSong.setAdapter(songListAdapter);
         }
 
         //音乐列表点击事件
-        listLocalMusic.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                if (isOver) {
-                    startPlay(mContext, editorPlayList,
-                            StaticVariate.localSongListTable, position);
-                    songListAdapter.changeData();
-                    songListAdapter.notifyDataSetChanged();
-                } else {
-                    Toast.makeText(mContext, "等待初始化完成", Toast.LENGTH_SHORT).show();
-                }
-            }
+        lvSong.setOnItemClickListener((parent, view, position, id) -> {
+            cursorSong.moveToPosition(position);
+            startPlay(mContext, editorPlayList, Variate.localSongListTable, position);
+            setPlayMessage(editorPlayList, cursorSong, Variate.localSongListTable, position);
+            songListAdapter.changeData();
+            songListAdapter.notifyDataSetChanged();
         });
-        //音乐列表菜单点击事件监听器
-        songListAdapter.setOnItemMenuClickListener(this);
-
     }
 
     //音乐列表菜单点击事件
-    public void onSongListItemMenuClick(int position) {
-        if (isOver) {
-            songListItemPosition = position;
-            cursorSong.moveToPosition(songListItemPosition);
-            AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
-            builder.setItems(new String[]{"添加或移除收藏", "添加到歌单", "从列表删除"}, new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    Log.e(TAG, "which" + which);
-                    songListItemMenuItemClick(which);
-                }
-            }).show();
-        } else {
-            Toast.makeText(mContext, "等待初始化完成", Toast.LENGTH_SHORT).show();
+    @SuppressLint("RestrictedApi")
+    public void onSongListItemMenuClick(View view, int position) {
+        cursorSong.moveToPosition(position);
+        PopupMenu pm = new PopupMenu(mContext, view.findViewById(R.id.img_song_list_menu));
+        pm.getMenuInflater().inflate(R.menu.memu_pm_local_song_list, pm.getMenu());
+        pm.setOnMenuItemClickListener(menuItem -> {
+            songListItemMenuItemClick(menuItem.getItemId());
+            return false;
+        });
+        //使用反射，强制显示菜单图标
+        try {
+            Field field = pm.getClass().getDeclaredField("mPopup");
+            field.setAccessible(true);
+            MenuPopupHelper mHelper = (MenuPopupHelper) field.get(pm);
+            mHelper.setForceShowIcon(true);
+            mHelper.show();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
         }
     }
 
     //音乐列表菜单弹出dialog点击事件
-    private void songListItemMenuItemClick(int dialogItemPosition) {
-        switch (dialogItemPosition) {
+    private void songListItemMenuItemClick(int dialogItemId) {
+        switch (dialogItemId) {
             //添加或移除收藏
-            case 0:
+            case R.id.item_add_favorite:
                 addFavorite(mContext, db, cursorSong);
                 break;
             //添加到歌单
-            case 1:
+            case R.id.item_add_song_menu:
                 View viewAddSongMenuDialog = getLayoutInflater().inflate(R.layout.dialog_add_song_menu, null);
                 addSongMenu(mContext, db, cursorSong, viewAddSongMenuDialog);
                 break;
             //删除
-            case 2:
-                deleteSong(mContext, db, StaticVariate.localSongListTable,
-                        cursorSong, preferencesPlayList, songListItemPosition, songListAdapter);
-                cursorSong = db.rawQuery("select * from " + StaticVariate.localSongListTable, null);
+            case R.id.item_delete:
+                deleteSong(mContext, db, Variate.localSongListTable, cursorSong,songListAdapter);
+                cursorSong = db.rawQuery(sql, null);
                 break;
+        }
+    }
+
+    //上下一曲
+    @Override
+    public void OnPlaySongChange() {
+        if (songListAdapter != null){
+            songListAdapter.changeData();
+            songListAdapter.notifyDataSetChanged();
         }
     }
 
     //把音乐列表存入数据库
     public class SaveSongThread extends Thread {
-        ArrayList<Song> song;
-
-        SaveSongThread(ArrayList<Song> song) {
-            this.song = song;
-        }
-
         public void run() {
-            for (int i = 0; i < song.size(); i++) {
-                Log.e(TAG, song.get(i).getTitle());
-                insertSong(db, StaticVariate.localSongListTable, song.get(i));
-            }
-            Message message = new Message();
-            message.what = 3;
-            changeUIHandler.sendMessage(message);
-            isOver = true;
-            cursorSong = db.rawQuery("select * from " + StaticVariate.localSongListTable, null);
-            Log.e(TAG, "初始化完成，共发现" + cursorSong.getCount() + "首音乐");
+            saveSong(db, songs);
+            editorSet.putBoolean(Variate.keyIsInitLocalList, false);
+            editorSet.apply();
+            sql = getSqlBaseOrder(Variate.localSongListTable, preferencesSet);
+            Log.e(TAG, sql);
+            cursorSong = db.rawQuery(sql, null);
+            runOnUiThread(() -> {
+                linearLayoutLoading.setVisibility(View.GONE);
+                songListAdapter = new SongListAdapter(mContext,
+                        cursorSong, Variate.localSongListTable);
+                Toast.makeText(mContext, "初始化完成，共发现" + cursorSong.getCount() + "首音乐", Toast.LENGTH_SHORT).show();
+                lvSong.setAdapter(songListAdapter);
+                songListAdapter.setOnItemMenuClickListener(LocalSongActivity.this);
+            });
         }
     }
 
@@ -186,7 +179,7 @@ public class LocalSongActivity extends BaseActivity implements View.OnClickListe
                 break;
             case R.id.img_title_search:
                 Intent intent = new Intent(mContext, LocalSearchActivity.class);
-                intent.putExtra("tableName", StaticVariate.localSongListTable);
+                intent.putExtra("tableName", Variate.localSongListTable);
                 startActivityForResult(intent, 1);
                 break;
             case R.id.img_title_menu:
@@ -195,58 +188,124 @@ public class LocalSongActivity extends BaseActivity implements View.OnClickListe
         }
     }
 
-
+    //解决报错 can only be called from within the same library group..
+    @SuppressLint("RestrictedApi")
     private void titleMenu() {
         final PopupMenu pm = new PopupMenu(mContext, imgTitleMenu);
-        pm.getMenuInflater().inflate(R.menu.menu_popupmenu_local_song, pm.getMenu());
-        pm.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(MenuItem menuItem) {
-                switch (menuItem.getItemId()) {
-                    case R.id.item_scan_local_song:
-                        Intent intent = new Intent(mContext, ScanLocalSongActivity.class);
-                        startActivityForResult(intent, 2);
-                        pm.dismiss();
-                        break;
-                    case R.id.item_select_order_way:
-                        Log.e(TAG, "排序");
-//                        pm.dismiss();
-                        progressDialog = new ProgressDialog(mContext);
-                        progressDialog.setMessage("正在存入数据库");
-                        progressDialog.setCancelable(false);
-                        showOrderPopupMenu(mContext, imgTitleMenu, db,
-                                StaticVariate.localSongListTable, preferencesSet,
-                                editorSet, changeUIHandler, progressDialog,
-                                StaticVariate.keyLocalOrder);
-
-                        break;
-
-                }
-                return false;
+        pm.getMenuInflater().inflate(R.menu.menu_pm_local_song, pm.getMenu());
+        pm.setOnMenuItemClickListener(menuItem -> {
+            boolean b = false;
+            int order = Variate.SORT_TIME_DESC;
+            switch (menuItem.getItemId()) {
+                case R.id.item_scan_local_song:
+                    Intent intent = new Intent(mContext, ScanLocalSongActivity.class);
+                    startActivityForResult(intent, 2);
+                    pm.dismiss();
+                    break;
+                case R.id.item_select_sort_way:
+                    Log.e(TAG, "排序");
+                    order = preferencesSet.getInt(Variate.keyLocalSort, Variate.SORT_TIME_DESC);
+                    pm.getMenu().getItem(1).getSubMenu().getItem(order).setChecked(true);
+                    break;
+                case R.id.item_sort_by_name_asc:
+                    order = Variate.SORT_NAME_ASC;
+                    b = true;
+                    break;
+                case R.id.item_sort_by_name_desc:
+                    order = Variate.SORT_NAME_DESC;
+                    b = true;
+                    break;
+                case R.id.item_sort_by_singer_asc:
+                    order = Variate.SORT_SINGER_ASC;
+                    b = true;
+                    break;
+                case R.id.item_sort_by_singer_desc:
+                    order = Variate.SORT_SINGER_DESC;
+                    b = true;
+                    break;
+                case R.id.item_sort_by_time_asc:
+                    order = Variate.SORT_TIME_ASC;
+                    b = true;
+                    break;
+                case R.id.item_sort_by_time_desc:
+                    order = Variate.SORT_TIME_DESC;
+                    b = true;
+                    break;
             }
+            if (b) {
+                editorSet.putInt(Variate.keyLocalSort,order);
+                editorSet.apply();
+                sql = getSqlBaseOrder(Variate.localSongListTable,preferencesSet);
+                cursorSong = db.rawQuery(sql,null);
+                songListAdapter.changeData();
+                songListAdapter.notifyDataSetChanged();
+            }
+            return false;
         });
-        pm.show();
-
+        //使用反射，强制显示菜单图标
+        try {
+            Field field = pm.getClass().getDeclaredField("mPopup");
+            field.setAccessible(true);
+            MenuPopupHelper mHelper = (MenuPopupHelper) field.get(pm);
+            mHelper.setForceShowIcon(true);
+            mHelper.show();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        }
     }
+
+//    private void titleMenu() {
+//        final PopupMenu pm = new PopupMenu(mContext, imgTitleMenu);
+//        pm.getMenuInflater().inflate(R.menu.menu_pm_local_song, pm.getMenu());
+//        pm.setOnMenuItemClickListener(menuItem -> {
+//            switch (menuItem.getItemId()) {
+//                case R.id.item_scan_local_song:
+//                    Intent intent = new Intent(mContext, ScanLocalSongActivity.class);
+//                    startActivityForResult(intent, 2);
+//                    pm.dismiss();
+//                    break;
+//                case R.id.item_select_order_way:
+//                    Log.e(TAG, "排序");
+////                        pm.dismiss();
+//                    progressDialog = new ProgressDialog(mContext);
+//                    progressDialog.setMessage("正在存入数据库");
+//                    progressDialog.setCancelable(false);
+//                    showOrderPopupMenu(mContext, imgTitleMenu, db,
+//                            Variate.localSongListTable, preferencesSet,
+//                            editorSet, changeUIHandler, progressDialog,
+//                            Variate.keyLocalSort);
+//
+//                    break;
+//
+//            }
+//            return false;
+//        });
+//        pm.show();
+//
+//    }
 
     private void setClickListener() {
         imgTitleBack.setOnClickListener(this);
         imgTitleSearch.setOnClickListener(this);
         imgTitleMenu.setOnClickListener(this);
+        playBarLayout.setOnPlaySongChangeListener(this);
     }
 
     private void init() {
         mContext = LocalSongActivity.this;
-        preferencesPlayList = getSharedPreferences(StaticVariate.playList, MODE_PRIVATE);
+        preferencesPlayList = getSharedPreferences(Variate.playList, MODE_PRIVATE);
         editorPlayList = preferencesPlayList.edit();
-        preferencesSet = getSharedPreferences(StaticVariate.keySet, MODE_PRIVATE);
+        preferencesSet = getSharedPreferences(Variate.set, MODE_PRIVATE);
         editorSet = preferencesSet.edit();
-        dataBase = new DataBase(this, StaticVariate.dataBaseName, null, 1);
+        dataBase = new DataBase(this, Variate.dataBaseName, null, 1);
         db = dataBase.getWritableDatabase();
         db.setLocale(Locale.SIMPLIFIED_CHINESE);
 
-        linearLayoutTitle = findViewById(R.id.linear_layout_title);
-        listLocalMusic = findViewById(R.id.list_local_song);
+        playBarLayout = findViewById(R.id.play_bar_layout);
+        linearLayoutLoading = findViewById(R.id.ll_loading);
+        lvSong = findViewById(R.id.list_local_song);
         tvTitleName = findViewById(R.id.tv_title_name);
         tvTitleName.setText("本地音乐");
         imgTitleBack = findViewById(R.id.img_title_back);
@@ -256,72 +315,25 @@ public class LocalSongActivity extends BaseActivity implements View.OnClickListe
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-//        switch (requestCode) {
-//            case 1:
-//                if (resultCode == 1) {
+        cursorSong = db.rawQuery(sql,null);
         songListAdapter.changeData();
         songListAdapter.notifyDataSetChanged();
-//                }
-//                break;
-//        }
     }
-
-    //设置列表播放图标线程
-    class SetListPlayIconThread extends Thread {
-        public void run() {
-            Log.e(TAG, "SetListPlayIconThread start");
-            while (run) {
-                if (StaticVariate.isSetListPlayIcon) {
-                    Message message = new Message();
-                    message.what = 1;
-                    changeUIHandler.sendMessage(message);
-                }
-                try {
-                    sleep(100);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    break;
-                }
-            }
-            Log.e(TAG, "SetListPlayIconThread close");
-        }
-    }
-
-    private Handler changeUIHandler = new Handler() {
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case 1:
-                    songListAdapter.changeData();
-                    songListAdapter.notifyDataSetChanged();
-                    StaticVariate.isSetListPlayIcon = false;
-                    break;
-                case StaticVariate.ORDER_COMPLETE:
-                    cursorSong = db.rawQuery("select * from " +
-                            StaticVariate.localSongListTable, null);
-                    songListAdapter.changeData();
-                    songListAdapter.notifyDataSetChanged();
-                    progressDialog.dismiss();
-                    break;
-                case 3:
-                    Toast.makeText(mContext,
-                            "初始化完成", Toast.LENGTH_SHORT).show();
-                    break;
-            }
-        }
-    };
 
     @Override
     protected void onStart() {
         super.onStart();
-        setListPlayIconThread = new SetListPlayIconThread();
-        setListPlayIconThread.start();
-        run = true;
+        playBarLayout.mBindService(mContext);
+        if (songListAdapter != null){
+            songListAdapter.changeData();
+            songListAdapter.notifyDataSetChanged();
+        }
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
-        run = false;
+    protected void onPause() {
+        playBarLayout.mUnBindService(mContext);
+        super.onPause();
     }
 
     protected void onDestroy() {

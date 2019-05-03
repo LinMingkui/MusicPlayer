@@ -7,42 +7,54 @@ import android.util.Log;
 
 public class DataBase extends SQLiteOpenHelper {
 
+    //本地音乐列表
     private static final String CREATE_BOOK_LOCAL = "create table localSongListTable("
-            + "id integer primary key AUTOINCREMENT, "
-            + "title text, "
+            + "songId integer primary key, "
+            + "songName text, "
             + "singer text, "
-            + "fileUrl text, "
-            + "addTime integer)";
+            + "songUrl text, "
+            + "songType integer)";
+    //下载音乐列表
     private static final String CREATE_BOOK_DOWNLOAD = "create table downloadSongListTable("
-            + "id integer primary key AUTOINCREMENT, "
-            + "title text, "
+            + "songId integer primary key AUTOINCREMENT, "
+            + "songName text, "
             + "singer text, "
-            + "fileUrl text,"
-            + "addTime integer)";
+            + "songUrl text, "
+            + "songType integer)";
+    //收藏音乐列表
     private static final String CREATE_BOOK_FAVORITE = "create table favoriteSongListTable("
-            + "id integer primary key AUTOINCREMENT, "
-            + "title text, "
+            + "songId integer primary key AUTOINCREMENT, "
+            + "songName text, "
             + "singer text, "
-            + "fileUrl text,"
-            + "addTime integer)";
+            + "songUrl text, "
+            + "songType integer)";
+    //最近播放音乐列表
     private static final String CREATE_BOOK_RECENTLY = "create table recentlySongListTable("
-            + "id integer primary key AUTOINCREMENT, "
-            + "title text, "
+            + "songId integer primary key AUTOINCREMENT, "
+            + "songName text, "
             + "singer text, "
-            + "fileUrl text,"
-            + "addTime integer)";
+            + "songUrl text, "
+            + "songType integer)";
+    //本地搜索音乐列表
     private static final String CREATE_BOOK_SEARCH = "create table localSearchSongListTable("
-            + "id integer primary key AUTOINCREMENT, "
-            + "title text, "
+            + "songId integer primary key AUTOINCREMENT, "
+            + "songName text, "
             + "singer text, "
-            + "fileUrl text,"
-            + "addTime integer)";
+            + "songUrl text, "
+            + "songType integer)";
+    //正在播放音乐列表
+    private static final String CREATE_BOOK_PLAY = "create table playListTable("
+            + "songId integer primary key AUTOINCREMENT, "
+            + "songName text, "
+            + "singer text, "
+            + "songUrl text, "
+            + "songType integer)";
 
+    //歌单列表
     private static final String CREATE_BOOK_SONG_MENU = "create table songMenuNameTable("
-            + "id integer primary key AUTOINCREMENT, "
+            + "songMenuid integer primary key AUTOINCREMENT, "
             + "songMenuName text, "
-            + "songNumber integer,"
-            + "addTime integer)";
+            + "songNumber integer)";
 
     public DataBase(Context context, String name,
                     SQLiteDatabase.CursorFactory factory, int version) {
@@ -57,6 +69,7 @@ public class DataBase extends SQLiteOpenHelper {
         db.execSQL(CREATE_BOOK_RECENTLY);
         db.execSQL(CREATE_BOOK_SONG_MENU);
         db.execSQL(CREATE_BOOK_SEARCH);
+        db.execSQL(CREATE_BOOK_PLAY);
         Log.e("DataBase.java", "数据库" + db + "创建成功");
     }
 

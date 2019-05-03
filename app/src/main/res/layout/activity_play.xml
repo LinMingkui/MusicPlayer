@@ -248,7 +248,7 @@
                 android:orientation="vertical">
 
                 <ImageView
-                    android:id="@+id/img_play_or_pause"
+                    android:id="@+id/img_play"
                     android:layout_width="60dp"
                     android:layout_height="60dp"
                     android:src="@drawable/ic_play"

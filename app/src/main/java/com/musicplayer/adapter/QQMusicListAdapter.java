@@ -55,7 +55,7 @@ public class QQMusicListAdapter extends BaseAdapter {
         }else {
             holder = (ViewHolder) convertView.getTag();
         }
-        holder.tvTitle.setText(songList.get(position).getTitle());
+        holder.tvTitle.setText(songList.get(position).getSongName());
         holder.tvSinger.setText(songList.get(position).getSinger());
         holder.tvPosition.setText(String.valueOf(position+1));
         holder.imgMenu.setOnClickListener(v -> onSongListItemMenuClickListener.onSongListItemMenuClick(position));

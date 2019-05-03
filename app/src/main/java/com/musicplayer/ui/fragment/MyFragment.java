@@ -1,28 +1,19 @@
 package com.musicplayer.ui.fragment;
 
-import android.Manifest;
 import android.app.AlertDialog;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.widget.DrawerLayout;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -40,7 +31,7 @@ import com.musicplayer.ui.activity.LocalSongActivity;
 import com.musicplayer.ui.activity.RecentlyPlayActivity;
 import com.musicplayer.ui.activity.SongMenuActivity;
 import com.musicplayer.ui.widget.NoScrollListView;
-import com.musicplayer.utils.StaticVariate;
+import com.musicplayer.utils.Variate;
 
 import static android.content.Context.MODE_PRIVATE;
 
@@ -96,41 +87,34 @@ public class MyFragment extends Fragment implements View.OnClickListener {
         setClickListener();
         setSongNumber();
 
-        if (!preferencesSet.getBoolean(StaticVariate.keySongMenuExpand,true)){
+        if (!preferencesSet.getBoolean(Variate.keySongMenuExpand, true)) {
             listSongMenu.setVisibility(View.GONE);
             imgExpand.setImageResource(R.drawable.ic_expand_more);
         }
 
         songMenuAdapter = new SongMenuAdapter(mContext, cursorSongMenuList);
         listSongMenu.setAdapter(songMenuAdapter);
-        listSongMenu.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                TextView tvSongMenuName = view.findViewById(R.id.text_song_menu_name);
-                Cursor cursorSongMenuId = db.rawQuery("select id from "
-                                + StaticVariate.songMenuNameTable + " where "
-                                + StaticVariate.songMenuName + " = ?",
-                        new String[]{tvSongMenuName.getText().toString()});
-                if (cursorSongMenuId.getCount() == 0) {
-                    Toast.makeText(mContext, "打开出错", Toast.LENGTH_SHORT).show();
-                } else {
-                    cursorSongMenuId.moveToFirst();
-                    Intent intent = new Intent(mContext, SongMenuActivity.class);
-                    intent.putExtra("id", cursorSongMenuId.getInt(
-                            cursorSongMenuId.getColumnIndex("id")));
-                    intent.putExtra(StaticVariate.songMenuName, tvSongMenuName.getText());
-                    startActivityForResult(intent, 5);
-                }
+        listSongMenu.setOnItemClickListener((parent, view, position, id) -> {
+            TextView tvSongMenuName = view.findViewById(R.id.text_song_menu_name);
+            Cursor cursorSongMenuId = db.rawQuery("select "+Variate.keySongMenuId+" from "
+                            + Variate.songMenuNameTable + " where "
+                            + Variate.keySongMenuName + " = ?",
+                    new String[]{tvSongMenuName.getText().toString()});
+            if (cursorSongMenuId.getCount() == 0) {
+                Toast.makeText(mContext, "打开出错", Toast.LENGTH_SHORT).show();
+            } else {
+                cursorSongMenuId.moveToFirst();
+                Intent intent = new Intent(mContext, SongMenuActivity.class);
+                intent.putExtra(Variate.keySongMenuId, cursorSongMenuId.getInt(0));
+                intent.putExtra(Variate.keySongMenuName, tvSongMenuName.getText());
+                startActivityForResult(intent, 5);
             }
         });
 
         //删除歌单
-        listSongMenu.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-            @Override
-            public boolean onItemLongClick(AdapterView<?> parent, final View view, int position, long id) {
-                deleteSongMenuDialog(view);
-                return true;
-            }
+        listSongMenu.setOnItemLongClickListener((parent, view, position, id) -> {
+            deleteSongMenuDialog(view);
+            return true;
         });
     }
 
@@ -204,12 +188,12 @@ public class MyFragment extends Fragment implements View.OnClickListener {
     //初始化
     private void init() {
         mContext = getActivity();
-        dataBase = new DataBase(mContext, StaticVariate.dataBaseName,
+        dataBase = new DataBase(mContext, Variate.dataBaseName,
                 null, 1);
         db = dataBase.getWritableDatabase();
         cursorSongMenuList = db.rawQuery("select * from " +
-                StaticVariate.songMenuNameTable, null);
-        preferencesSet = mContext.getSharedPreferences(StaticVariate.keySet, MODE_PRIVATE);
+                Variate.songMenuNameTable, null);
+        preferencesSet = mContext.getSharedPreferences(Variate.set, MODE_PRIVATE);
         editorSet = preferencesSet.edit();
         linearLayoutLocalMusic = view.findViewById(R.id.linear_layout_local_music);
         linearLayoutDownloadSong = view.findViewById(R.id.linear_layout_download);
@@ -228,16 +212,16 @@ public class MyFragment extends Fragment implements View.OnClickListener {
     }
 
     //设置歌单是否展开
-    private void setSongMenuExpand(){
-        if (preferencesSet.getBoolean(StaticVariate.keySongMenuExpand, true)) {
+    private void setSongMenuExpand() {
+        if (preferencesSet.getBoolean(Variate.keySongMenuExpand, true)) {
             listSongMenu.setVisibility(View.GONE);
             imgExpand.setImageResource(R.drawable.ic_expand_more);
-            editorSet.putBoolean(StaticVariate.keySongMenuExpand,false);
+            editorSet.putBoolean(Variate.keySongMenuExpand, false);
             editorSet.apply();
-        }else {
+        } else {
             listSongMenu.setVisibility(View.VISIBLE);
             imgExpand.setImageResource(R.drawable.ic_expand_less);
-            editorSet.putBoolean(StaticVariate.keySongMenuExpand,true);
+            editorSet.putBoolean(Variate.keySongMenuExpand, true);
             editorSet.apply();
         }
     }
@@ -257,19 +241,16 @@ public class MyFragment extends Fragment implements View.OnClickListener {
 
     //设置音乐数量
     private void setSongNumber() {
-        Cursor cursor = db.query(StaticVariate.localSongListTable, null, null,
-                null, null, null, null);
+        Cursor cursor = db.rawQuery("select "+Variate.keySongId+" from "+Variate.localSongListTable,null);
         textLocalSongNumber.setText(cursor.getCount() + "首");
-        cursor = db.query(StaticVariate.favoriteSongListTable, null, null,
-                null, null, null, null);
+        cursor = db.rawQuery("select "+Variate.keySongId+" from "+Variate.favoriteSongListTable, null);
         textFavoriteSongNumber.setText(cursor.getCount() + "首");
-        cursor = db.query(StaticVariate.recentlySongListTable, null, null,
-                null, null, null, null);
+        cursor = db.rawQuery("select "+Variate.keySongId+" from "+Variate.recentlySongListTable, null);
         textRecentlySongNumber.setText(cursor.getCount() + "首");
-        cursorSongMenuList = db.rawQuery("select * from " +
-                StaticVariate.songMenuNameTable, null);
+        cursorSongMenuList = db.rawQuery("select * from " + Variate.songMenuNameTable, null);
         songMenuAdapter = new SongMenuAdapter(mContext, cursorSongMenuList);
         listSongMenu.setAdapter(songMenuAdapter);
+        cursor.close();
     }
 
     //创建歌单对话框
@@ -283,53 +264,44 @@ public class MyFragment extends Fragment implements View.OnClickListener {
                 findViewById(R.id.edit_song_menu_name);
         Button btnOK = viewAddSongMenuDialog.findViewById(R.id.btn_ok);
         Button btnCancel = viewAddSongMenuDialog.findViewById(R.id.btn_cancel);
-        btnCancel.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dialog.dismiss();
-            }
-        });
-        btnOK.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (!editSongMenuName.getText().toString().isEmpty()) {
-                    Cursor cursor = db.rawQuery("select " + StaticVariate.songMenuName +
-                                    " from " + StaticVariate.songMenuNameTable +
-                                    " where " + StaticVariate.songMenuName +
-                                    " = ?",
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        btnOK.setOnClickListener(v -> {
+            if (!editSongMenuName.getText().toString().isEmpty()) {
+                Cursor cursor = db.rawQuery("select " + Variate.keySongMenuName +
+                                " from " + Variate.songMenuNameTable +
+                                " where " + Variate.keySongMenuName +
+                                " = ?",
+                        new String[]{editSongMenuName.getText().toString()});
+                if (cursor.getCount() == 0) {
+                    ContentValues values = new ContentValues();
+                    Log.e("****", editSongMenuName.getText().toString());
+                    values.put(Variate.keySongMenuName, editSongMenuName.getText().toString());
+                    values.put(Variate.keySongNumber, 0);
+                    db.insert(Variate.songMenuNameTable,
+                            null, values);
+                    dialog.dismiss();
+                    cursorSongMenuList = db.rawQuery("select * from " +
+                            Variate.songMenuNameTable, null);
+                    songMenuAdapter = new SongMenuAdapter(mContext, cursorSongMenuList);
+                    listSongMenu.setAdapter(songMenuAdapter);
+                    Cursor cursorSongMenuId = db.rawQuery("select " + Variate.keySongMenuId + " from "
+                                    + Variate.songMenuNameTable + " where "
+                                    + Variate.keySongMenuName + " = ?",
                             new String[]{editSongMenuName.getText().toString()});
-                    if (cursor.getCount() == 0) {
-                        ContentValues values = new ContentValues();
-                        Log.e("****", editSongMenuName.getText().toString());
-                        values.put(StaticVariate.songMenuName, editSongMenuName.getText().toString());
-                        values.put(StaticVariate.songNumber, 0);
-                        db.insert(StaticVariate.songMenuNameTable,
-                                null, values);
-                        dialog.dismiss();
-                        cursorSongMenuList = db.rawQuery("select * from " +
-                                StaticVariate.songMenuNameTable, null);
-                        songMenuAdapter = new SongMenuAdapter(mContext, cursorSongMenuList);
-                        listSongMenu.setAdapter(songMenuAdapter);
-                        Cursor cursorSongMenuId = db.rawQuery("select id from "
-                                        + StaticVariate.songMenuNameTable + " where "
-                                        + StaticVariate.songMenuName + " = ?",
-                                new String[]{editSongMenuName.getText().toString()});
-                        cursorSongMenuId.moveToFirst();
-                        db.execSQL("create table songMenuTable"
-                                + "_"
-                                + cursorSongMenuId.getInt(cursorSongMenuId.getColumnIndex("id"))
-                                + "(id integer primary key AUTOINCREMENT, "
-                                + "title text, "
-                                + "singer text, "
-                                + "fileUrl text,"
-                                + "addTime integer)");
-                        Toast.makeText(mContext, "创建成功", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(mContext, "歌单已存在", Toast.LENGTH_SHORT).show();
-                    }
+                    cursorSongMenuId.moveToFirst();
+                    db.execSQL("create table songMenuTable"
+                            + "_" + cursorSongMenuId.getInt(0)
+                            + "(songId integer primary key AUTOINCREMENT, "
+                            + "songName text, "
+                            + "singer text, "
+                            + "songUrl text,"
+                            + "songType interger)");
+                    Toast.makeText(mContext, "创建成功", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(mContext, "歌单名不能为空", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(mContext, "歌单已存在", Toast.LENGTH_SHORT).show();
                 }
+            } else {
+                Toast.makeText(mContext, "歌单名不能为空", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -342,33 +314,31 @@ public class MyFragment extends Fragment implements View.OnClickListener {
         AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
         builder.setTitle("删除歌单")
                 .setMessage("确定删除“" + textViewSongMenuName.getText() + "”歌单")
-                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        TextView textViewSongMenuName = view.findViewById(R.id.text_song_menu_name);
-                        String[] songMenuName = new String[]{textViewSongMenuName.getText().toString()};
-                        Cursor cursorSongMenuId = db.rawQuery("select id from " +
-                                StaticVariate.songMenuNameTable
-                                + " where "
-                                + StaticVariate.songMenuName
-                                + " = ?", songMenuName);
-                        if (cursorSongMenuId.getCount() == 0) {
-                            Toast.makeText(mContext, "获取歌单id失败", Toast.LENGTH_SHORT).show();
-                        } else {
-                            cursorSongMenuId.moveToFirst();
-                            int id = cursorSongMenuId.getInt(cursorSongMenuId.getColumnIndex("id"));
-                            String sql = "drop table " + StaticVariate.songMenuTable + "_" + id;
-                            db.execSQL(sql);
-                            db.delete(StaticVariate.songMenuNameTable, StaticVariate.songMenuName + " =?",
-                                    songMenuName);
-                            cursorSongMenuList = db.rawQuery("select * from " +
-                                    StaticVariate.songMenuNameTable, null);
-                            songMenuAdapter = new SongMenuAdapter(mContext, cursorSongMenuList);
-                            listSongMenu.setAdapter(songMenuAdapter);
-                            Toast.makeText(mContext, "删除成功", Toast.LENGTH_SHORT).show();
-                        }
-                        cursorSongMenuId.close();
+                .setPositiveButton("确定", (dialog, which) -> {
+                    TextView textViewSongMenuName1 = view.findViewById(R.id.text_song_menu_name);
+                    String[] songMenuName = new String[]{textViewSongMenuName1.getText().toString()};
+                    Cursor cursorSongMenuId = db.rawQuery("select " + Variate.keySongMenuId + " from " +
+                            Variate.songMenuNameTable
+                            + " where "
+                            + Variate.keySongMenuName
+                            + " = ?", songMenuName);
+                    if (cursorSongMenuId.getCount() == 0) {
+                        Toast.makeText(mContext, "获取歌单id失败", Toast.LENGTH_SHORT).show();
+                    } else {
+                        cursorSongMenuId.moveToFirst();
+                        int id = cursorSongMenuId.getInt(0);
+                        //删除表
+                        String sql = "drop table " + Variate.songMenuTable + "_" + id;
+                        db.execSQL(sql);
+                        db.delete(Variate.songMenuNameTable, Variate.keySongMenuName + " =?",
+                                songMenuName);
+                        cursorSongMenuList = db.rawQuery("select * from " +
+                                Variate.songMenuNameTable, null);
+                        songMenuAdapter = new SongMenuAdapter(mContext, cursorSongMenuList);
+                        listSongMenu.setAdapter(songMenuAdapter);
+                        Toast.makeText(mContext, "删除成功", Toast.LENGTH_SHORT).show();
                     }
+                    cursorSongMenuId.close();
                 })
                 .setNegativeButton("取消", null).show();
     }

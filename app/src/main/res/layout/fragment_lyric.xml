@@ -13,11 +13,16 @@
         android:layout_height="match_parent"
         android:layout_marginLeft="30dp"
         android:layout_marginRight="30dp"
-        android:clickable="false"
         app:indicatorStartEndMargin="-10dp"
+        app:playIcon="@drawable/ic_lrc_play"
         app:lrcTextSize="18sp"
-        app:indicatorTextColor="@color/colorAccent"
+        app:noLrcTextSize="18sp"
+        app:indicatorTextSize="14sp"
+        app:indicatorLineHeight="1dp"
+        app:indicatorTextColor="@color/current_lrc"
         app:lrcCurrentTextColor="@color/current_lrc"
+        app:lrcNormalTextColor="@color/sub_text"
+        app:indicatorLineColor="@color/current_lrc"
         app:playIconHeight="30dp"
         app:playIconWidth="30dp"/>
 </FrameLayout>

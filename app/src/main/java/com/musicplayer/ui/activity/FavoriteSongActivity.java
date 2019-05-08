@@ -21,6 +21,7 @@ import com.musicplayer.adapter.SongListAdapter;
 import com.musicplayer.database.DataBase;
 import com.musicplayer.ui.widget.PlayBarLayout;
 import com.musicplayer.utils.BaseActivity;
+import com.musicplayer.utils.DownloadUtils;
 import com.musicplayer.utils.Variate;
 
 import java.lang.reflect.Field;
@@ -87,8 +88,10 @@ public class FavoriteSongActivity extends BaseActivity implements View.OnClickLi
         playBarLayout = findViewById(R.id.play_bar_layout);
         preferencesPlayList = getSharedPreferences(Variate.playList, MODE_PRIVATE);
         editorPlayList = preferencesPlayList.edit();
+        editorPlayList.apply();
         preferencesSet = getSharedPreferences(Variate.set, MODE_PRIVATE);
         editorSet = preferencesSet.edit();
+        editorSet.apply();
         db = dataBase.getWritableDatabase();
         imgTitleBack = findViewById(R.id.img_title_back);
         imgTitleSearch = findViewById(R.id.img_title_search);
@@ -197,6 +200,9 @@ public class FavoriteSongActivity extends BaseActivity implements View.OnClickLi
         PopupMenu pm = new PopupMenu(mContext, view.findViewById(R.id.img_song_list_menu));
         pm.getMenuInflater().inflate(R.menu.memu_pm_local_song_list, pm.getMenu());
         pm.getMenu().getItem(0).setVisible(false);
+        if (cursorSong.getInt(cursorSong.getColumnIndex(Variate.keySongType)) == Variate.SONG_TYPE_LOCAL){
+            pm.getMenu().getItem(3).setVisible(false);
+        }
         pm.setOnMenuItemClickListener(menuItem -> {
             songListItemMenuItemClick(menuItem.getItemId());
             return false;
@@ -216,7 +222,6 @@ public class FavoriteSongActivity extends BaseActivity implements View.OnClickLi
     }
 
     private void songListItemMenuItemClick(int dialogItemId) {
-        Log.e(TAG,"dialogItemPosition:"+dialogItemId);
         switch (dialogItemId) {
             //添加到歌单
             case R.id.item_add_song_menu:
@@ -228,9 +233,20 @@ public class FavoriteSongActivity extends BaseActivity implements View.OnClickLi
                 deleteSong(mContext, db, Variate.favoriteSongListTable, cursorSong,songListAdapter);
                 cursorSong = db.rawQuery(sql, null);
                 break;
+            case R.id.item_download:
+                DownloadUtils downloadUtils = new DownloadUtils(mContext,null,cursorSong);
+                downloadUtils.startDownload();
+                break;
         }
     }
-
+    //上下一曲
+    @Override
+    public void OnPlaySongChange() {
+        if (songListAdapter != null){
+            songListAdapter.changeData();
+            songListAdapter.notifyDataSetChanged();
+        }
+    }
     @Override
     protected void onStart() {
         super.onStart();
@@ -245,6 +261,7 @@ public class FavoriteSongActivity extends BaseActivity implements View.OnClickLi
 
     protected void onDestroy() {
         super.onDestroy();
+        setResult(1);
         playBarLayout.mUnBindService(mContext);
         run = false;
         dataBase.close();
@@ -252,13 +269,11 @@ public class FavoriteSongActivity extends BaseActivity implements View.OnClickLi
         cursorSong.close();
         Log.e(TAG, "关闭Activity");
     }
-
-    //上下一曲
-    @Override
-    public void OnPlaySongChange() {
-        if (songListAdapter != null){
-            songListAdapter.changeData();
-            songListAdapter.notifyDataSetChanged();
-        }
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        cursorSong = db.rawQuery(sql,null);
+        songListAdapter.changeData();
+        songListAdapter.notifyDataSetChanged();
     }
+
 }

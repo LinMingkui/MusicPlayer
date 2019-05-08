@@ -1,6 +1,6 @@
 package com.musicplayer.ui.activity;
 
-import android.content.BroadcastReceiver;
+import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -14,6 +14,8 @@ import android.media.AudioManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.support.v7.view.menu.MenuPopupHelper;
+import android.support.v7.widget.PopupMenu;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -30,12 +32,20 @@ import com.musicplayer.service.PlayService;
 import com.musicplayer.ui.fragment.LyricFragment;
 import com.musicplayer.ui.fragment.SingerFragment;
 import com.musicplayer.utils.BaseActivity;
+import com.musicplayer.utils.DownloadUtils;
 import com.musicplayer.utils.TimeUtils;
+import com.musicplayer.utils.ToastUtils;
 import com.musicplayer.utils.Variate;
+
+import java.lang.reflect.Field;
 
 import crossoverone.statuslib.StatusUtil;
 
-import static com.musicplayer.utils.MethodUtils.addSong;
+import static com.musicplayer.utils.MethodUtils.addSongMenu;
+import static com.musicplayer.utils.MethodUtils.addToFavorite;
+import static com.musicplayer.utils.Song.getPlayingSong;
+import static com.musicplayer.utils.Song.songToCursor;
+import static java.lang.Thread.sleep;
 
 public class PlayActivity extends BaseActivity implements View.OnClickListener, PlayService.OnPlaySongChangeListener, PlayService.OnPlayStateChangeListener, PlayService.OnProgressListener {
 
@@ -44,6 +54,8 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener, 
     private IBinder iBinder;
     public static boolean isClickLrcView = false;
     public boolean run = true;
+    public boolean isBind = false;
+
     private static final String TAG = "*PlayActivity";
     private boolean isFirstOpen = true;
     private int playView = 1;
@@ -51,8 +63,6 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener, 
     private int currentVolume;
     private DataBase dataBase;
     private SQLiteDatabase db;
-    private Cursor playCursor;
-    private Bitmap bitmap;
 
     private SharedPreferences preferencesPlayList;
     private SharedPreferences preferencesSet;
@@ -64,7 +74,7 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener, 
 
     private ImageView imgBackground;
     private ImageView imgBack;
-    private ImageView imgFavorite;
+    private ImageView imgFavorite, imgDownload, imgMenu;
     private ImageView imgPlayMode, imgPrev, imgPlay, imgNext, imgPlayList;
     private SeekBar seekBarPlay, seekBarVolume;
     private TextView textName, textSinger;
@@ -87,13 +97,21 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener, 
         setOnClickListener();
 
         setPlayModeIcon();
+        setFavoriteIcon();
+
         textName.setText(preferencesPlayList.getString(Variate.keySongName, "用心聆听"));
-        textSinger.setText(preferencesPlayList.getString(Variate.keySinger, "用心聆听"));
+        textSinger.setText(preferencesPlayList.getString(Variate.keySinger, "用心聆听")
+                .equals("") ? "群星" : preferencesPlayList.getString(Variate.keySinger, "用心聆听"));
         new Thread(() -> {
             while (run) {
                 if (isClickLrcView) {
                     switchFragment();
                     isClickLrcView = false;
+                }
+                try {
+                    sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
         }).start();
@@ -101,19 +119,24 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener, 
         seekBarPlay.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser && playService != null){
+                if (fromUser && playService != null) {
                     playService.seekTo(progress);
                 }
             }
+
             @Override
-            public void onStartTrackingTouch(SeekBar seekBar) { }
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
             @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {}
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
         });
 
         //音量调节
         seekBarVolume.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
@@ -122,10 +145,14 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener, 
                     currentVolume = progress;
                 }
             }
+
             @Override
-            public void onStartTrackingTouch(SeekBar seekBar) { }
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
             @Override
-            public void onStopTrackingTouch(SeekBar seekBar) { }
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
         });
     }
 
@@ -134,6 +161,7 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener, 
         preferencesPlayList = getSharedPreferences(Variate.playList, MODE_PRIVATE);
         preferencesSet = getSharedPreferences(Variate.set, MODE_PRIVATE);
         editorSet = preferencesSet.edit();
+        editorSet.apply();
 
         dataBase = new DataBase(this, Variate.dataBaseName,
                 null, 1);
@@ -156,6 +184,8 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener, 
         imgBackground = findViewById(R.id.img_background);
         imgBack = findViewById(R.id.img_back);
         imgFavorite = findViewById(R.id.img_favorite);
+        imgDownload = findViewById(R.id.img_download);
+        imgMenu = findViewById(R.id.img_menu);
         imgPlayMode = findViewById(R.id.img_play_mode);
         imgPrev = findViewById(R.id.img_prev);
         imgPlay = findViewById(R.id.img_play);
@@ -185,7 +215,9 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener, 
             }
             singerFragment = SingerFragment.newInstance(wh);
             getSupportFragmentManager().beginTransaction()
-                    .add(R.id.fragment_play, singerFragment).commitAllowingStateLoss();
+                    .add(R.id.fragment_play, singerFragment)
+                    .show(singerFragment)
+                    .commitAllowingStateLoss();
             isFirstOpen = false;
         }
     }
@@ -193,6 +225,8 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener, 
     private void setOnClickListener() {
         imgBack.setOnClickListener(this);
         imgFavorite.setOnClickListener(this);
+        imgMenu.setOnClickListener(this);
+        imgDownload.setOnClickListener(this);
         imgPlayMode.setOnClickListener(this);
         imgPrev.setOnClickListener(this);
         imgPlay.setOnClickListener(this);
@@ -230,38 +264,14 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener, 
                     playService.nextSong();
                 }
                 break;
-
             //收藏
             case R.id.img_favorite:
-                Cursor favoriteCursor = db.rawQuery("select * from " + Variate.
-                                favoriteSongListTable + " where " + Variate.keySongUrl + " = ?",
-                        new String[]{preferencesPlayList.getString(Variate.keySongUrl, "")});
-                if (favoriteCursor.getCount() == 0) {
-                    favoriteCursor = db.rawQuery("select * from "
-                                    + Variate.localSongListTable
-                                    + " where " + Variate.keySongUrl + " = ?",
-                            new String[]{preferencesPlayList.getString(Variate.keySongUrl, "")});
-                    Log.e(TAG,preferencesPlayList.getString(Variate.keySongUrl, ""));
-                    if (favoriteCursor.getCount() != 0) {
-                        favoriteCursor.moveToFirst();
-                        addSong(db, Variate.favoriteSongListTable, favoriteCursor);
-                        favoriteCursor.close();
-                        imgFavorite.setImageResource(R.drawable.ic_favorite_yes);
-                        Toast.makeText(mContext, "已添加至我的收藏", Toast.LENGTH_SHORT).show();
-                    }else {
-                        Toast.makeText(mContext, "歌曲不存在", Toast.LENGTH_SHORT).show();
-                    }
-                } else {
-                    db.delete(Variate.favoriteSongListTable, Variate.keySongUrl + " = ?",
-                            new String[]{preferencesPlayList.getString(Variate.keySongUrl, "")});
-                    imgFavorite.setImageResource(R.drawable.ic_favorite_no);
-                    Toast.makeText(mContext, "已从我的收藏移除", Toast.LENGTH_SHORT).show();
-                }
+                addToFavorite(mContext, db, preferencesPlayList);
+                setFavoriteIcon();
                 Variate.isSetFavoriteIcon = true;
                 //发送更新通知广播
                 sendBroadcast(new Intent(Variate.ACTION_UPDATE));
                 break;
-
             //切换播放模式
             case R.id.img_play_mode:
                 int key = preferencesSet.getInt(Variate.keyPlayMode, 0);
@@ -282,13 +292,59 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener, 
                     Toast.makeText(this, "顺序播放", Toast.LENGTH_SHORT).show();
                 }
                 break;
-
             //切换歌手图片和歌词界面
             case R.id.ll_play:
                 Log.e(TAG, "点击播放界面");
                 switchFragment();
                 break;
+            case R.id.img_download:
+                if (preferencesPlayList.getInt(Variate.keySongType, Variate.SONG_TYPE_LOCAL) != Variate.SONG_TYPE_LOCAL) {
+                    DownloadUtils downloadUtils = new DownloadUtils(mContext, null, getPlayingSong(preferencesPlayList));
+                    downloadUtils.startDownload();
+                } else {
+                    ToastUtils.show(mContext, "已下载");
+                }
+                break;
+            case R.id.img_menu:
+                showMenu(v);
+                break;
+        }
+    }
 
+    //音乐列表item imgMenu点击事件
+    @SuppressLint("RestrictedApi")
+    public void showMenu(View view) {
+        PopupMenu pm = new PopupMenu(mContext, view);
+        pm.getMenuInflater().inflate(R.menu.memu_pm_local_song_list, pm.getMenu());
+        pm.getMenu().getItem(0).setVisible(false);
+        pm.getMenu().getItem(2).setVisible(false);
+        pm.getMenu().getItem(3).setVisible(false);
+        pm.setOnMenuItemClickListener(menuItem -> {
+            menuItemClick(menuItem.getItemId());
+            return false;
+        });
+        //使用反射，强制显示菜单图标
+        try {
+            Field field = pm.getClass().getDeclaredField("mPopup");
+            field.setAccessible(true);
+            MenuPopupHelper mHelper = (MenuPopupHelper) field.get(pm);
+            mHelper.setForceShowIcon(true);
+            mHelper.show();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        }
+    }
+
+    //音乐列表菜单弹出dialog点击事件
+    private void menuItemClick(int dialogItemId) {
+        switch (dialogItemId) {
+            //添加到歌单
+            case R.id.item_add_song_menu:
+                View viewAddSongMenuDialog = getLayoutInflater().inflate(R.layout.dialog_add_song_menu, null);
+                addSongMenu(mContext, db, songToCursor(getPlayingSong(preferencesPlayList)), viewAddSongMenuDialog);
+                break;
         }
     }
 
@@ -296,32 +352,33 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener, 
         if (playView == 1) {
             if (lyricFragment == null) {
                 lyricFragment = new LyricFragment();
+                getSupportFragmentManager().beginTransaction()
+                        .add(R.id.fragment_play, lyricFragment)
+                        .hide(singerFragment)
+                        .show(lyricFragment)
+                        .commitAllowingStateLoss();
             }
             getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.fragment_play, lyricFragment).commitAllowingStateLoss();
+                    .hide(singerFragment)
+                    .show(lyricFragment)
+                    .commitAllowingStateLoss();
             playView = 2;
         } else if (playView == 2) {
             getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.fragment_play, singerFragment).commitAllowingStateLoss();
+                    .hide(lyricFragment)
+                    .show(singerFragment)
+                    .commitAllowingStateLoss();
             playView = 1;
         }
     }
 
     @Override
-    public void OnPlaySongChange(Cursor cursor) {
-        Log.e(TAG,"OnPlaySongChange");
-        textName.setText(cursor.getString(cursor.getColumnIndex(Variate.keySongName)));
-        textSinger.setText(cursor.getString(cursor.getColumnIndex(Variate.keySinger)));
-        if (db != null && dataBase != null) {
-            playCursor = db.rawQuery("select * from " + Variate.
-                            favoriteSongListTable + " where " + Variate.keySongUrl + " = ?",
-                    new String[]{preferencesPlayList.getString(Variate.keySongUrl, "")});
-            if (playCursor.getCount() == 0) {
-                imgFavorite.setImageResource(R.drawable.ic_favorite_no);
-            } else {
-                imgFavorite.setImageResource(R.drawable.ic_favorite_yes);
-            }
-        }
+    public void OnPlaySongChange() {
+        Log.e(TAG, "OnPlaySongChange");
+        textName.setText(preferencesPlayList.getString(Variate.keySongName, Variate.unKnown));
+        textSinger.setText(preferencesPlayList.getString(Variate.keySinger, "用心聆听")
+                .equals("") ? "群星" : preferencesPlayList.getString(Variate.keySinger, "用心聆听"));
+        setFavoriteIcon();
     }
 
     @Override
@@ -358,28 +415,29 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener, 
                     Log.e(TAG, "setProgress" + currentVolume);
                 }
                 break;
-
         }
         return super.onKeyDown(keyCode, event);
     }
 
-    public static class UIReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            switch (intent.getAction()) {
-                case Variate.ACTION_PREV:
-                    Log.e(TAG, "广播接收 上一曲");
-                case Variate.ACTION_NEXT:
-                    Log.e(TAG, "广播接收 下一曲");
-                    break;
-            }
+    private void setFavoriteIcon() {
+        Cursor cursor;
+        if (preferencesPlayList.getInt(Variate.keySongType, Variate.SONG_TYPE_LOCAL) == Variate.SONG_TYPE_LOCAL) {
+            imgDownload.setImageResource(R.drawable.ic_download_yes);
+            cursor = db.rawQuery("select * from " + Variate.
+                            favoriteSongListTable + " where " + Variate.keySongUrl + " = ?",
+                    new String[]{preferencesPlayList.getString(Variate.keySongUrl, "")});
+        } else {
+            imgDownload.setImageResource(R.mipmap.img_download_no);
+            cursor = db.rawQuery("select * from " + Variate.
+                            favoriteSongListTable + " where " + Variate.keySongMid + " = ?",
+                    new String[]{preferencesPlayList.getString(Variate.keySongMid, "")});
         }
-    }
-
-    private Bitmap setBackground() {
-        return NativeStackBlur.process(BitmapFactory.decodeResource(getResources(),
-                R.drawable.img_default_play_background), 25);
-
+        if (cursor.getCount() == 0) {
+            imgFavorite.setImageResource(R.drawable.ic_favorite_no);
+        } else {
+            imgFavorite.setImageResource(R.drawable.ic_favorite_yes);
+        }
+        cursor.close();
     }
 
     private void setPlayModeIcon() {
@@ -404,18 +462,10 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener, 
             if (playService.isPlay()) {
                 imgPlay.setImageResource(R.drawable.ic_pause);
             }
-            textDuration.setText(TimeUtils.transformTime(playService.getDuration()));
-            textProgress.setText(TimeUtils.transformTime(playService.getProgress()));
             seekBarPlay.setMax(playService.getDuration());
             seekBarPlay.setProgress(playService.getProgress());
-            playCursor = db.rawQuery("select * from " + Variate.
-                            favoriteSongListTable + " where " + Variate.keySongUrl + " = ?",
-                    new String[]{preferencesPlayList.getString(Variate.keySongUrl, "")});
-            if (playCursor.getCount() == 0) {
-                imgFavorite.setImageResource(R.drawable.ic_favorite_no);
-            } else {
-                imgFavorite.setImageResource(R.drawable.ic_favorite_yes);
-            }
+            setFavoriteIcon();
+            isBind = true;
             Log.e(TAG, "onServiceConnected");
         }
 
@@ -433,25 +483,26 @@ public class PlayActivity extends BaseActivity implements View.OnClickListener, 
     }
 
     @Override
+    protected void onRestart() {
+        dataBase = new DataBase(this, Variate.dataBaseName,
+                null, 1);
+        db = dataBase.getWritableDatabase();
+        super.onRestart();
+    }
+
+    @Override
     protected void onPause() {
-        unbindService(connection);
+        if (isBind) {
+            unbindService(connection);
+        }
         super.onPause();
     }
 
     protected void onDestroy() {
         super.onDestroy();
         run = false;
-        synchronized (this) {
-            db.close();
-            dataBase.close();
-        }
-        if (playCursor != null) {
-            playCursor.close();
-        }
-        imgBackground.setImageBitmap(null);
-        if (bitmap != null && !bitmap.isRecycled()) {
-            bitmap.recycle();
-        }
+        db.close();
+        dataBase.close();
         Log.e(TAG, "关闭Activity");
     }
 }

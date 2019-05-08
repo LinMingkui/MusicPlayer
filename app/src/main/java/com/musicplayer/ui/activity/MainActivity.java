@@ -22,8 +22,8 @@ import android.widget.Toast;
 import com.musicplayer.R;
 import com.musicplayer.adapter.TabAdapter;
 import com.musicplayer.database.DataBase;
-import com.musicplayer.ui.fragment.DiscoverFragment;
 import com.musicplayer.ui.fragment.MyFragment;
+import com.musicplayer.ui.fragment.SongLibraryFragment;
 import com.musicplayer.ui.widget.PlayBarLayout;
 import com.musicplayer.utils.BaseActivity;
 import com.musicplayer.utils.MyApplication;
@@ -36,8 +36,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     private String TAG = "*MainActivity";
     private DrawerLayout mainDrawerLayout;
 
-    private DataBase dataBase;
-    private SQLiteDatabase db;
+//    private DataBase dataBase;
+//    private SQLiteDatabase db;
     private SharedPreferences preferencesSet;
     private SharedPreferences.Editor editorSet;
 
@@ -66,7 +66,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     @Override
     protected void onStart() {
         super.onStart();
-//        super.onRestart();
         playBarLayout.mBindService(mContext);
     }
 
@@ -89,7 +88,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         //添加fragment
         fragmentArrayList = new ArrayList<>();
         fragmentArrayList.add(new MyFragment());
-        fragmentArrayList.add(new DiscoverFragment());
+        fragmentArrayList.add(new SongLibraryFragment());
         viewPager.setAdapter(new TabAdapter(getSupportFragmentManager(), fragmentArrayList,new String[]{"我的","乐库"}));
         tabLayout.setupWithViewPager(viewPager);
 

@@ -47,7 +47,7 @@ public class LoadMoreListView extends ListView implements AbsListView.OnScrollLi
             mIsLoading=true;
             addFooterView(mFootView);
             if (mLoadMoreListener!=null) {
-                mLoadMoreListener.onloadMore();
+                mLoadMoreListener.onLoadMore();
             }
         }
     }
@@ -62,7 +62,7 @@ public class LoadMoreListView extends ListView implements AbsListView.OnScrollLi
     }
 
     public interface OnLoadMoreListener{
-        void onloadMore();
+        void onLoadMore();
     }
     public void setLoadCompleted(){
         mIsLoading=false;

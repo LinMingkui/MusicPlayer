@@ -54,7 +54,7 @@ public class MyFragment extends Fragment implements View.OnClickListener {
     private SongMenuAdapter songMenuAdapter;
     private Cursor cursorSongMenuList;
 
-    private TextView textLocalSongNumber, textFavoriteSongNumber, textRecentlySongNumber;
+    private TextView textLocalSongNumber, textDownloadSongNumber,textFavoriteSongNumber, textRecentlySongNumber;
     private ImageView imgExpand;
     private NoScrollListView listSongMenu;
 
@@ -96,7 +96,7 @@ public class MyFragment extends Fragment implements View.OnClickListener {
         listSongMenu.setAdapter(songMenuAdapter);
         listSongMenu.setOnItemClickListener((parent, view, position, id) -> {
             TextView tvSongMenuName = view.findViewById(R.id.text_song_menu_name);
-            Cursor cursorSongMenuId = db.rawQuery("select "+Variate.keySongMenuId+" from "
+            Cursor cursorSongMenuId = db.rawQuery("select " + Variate.keySongMenuId + " from "
                             + Variate.songMenuNameTable + " where "
                             + Variate.keySongMenuName + " = ?",
                     new String[]{tvSongMenuName.getText().toString()});
@@ -109,6 +109,7 @@ public class MyFragment extends Fragment implements View.OnClickListener {
                 intent.putExtra(Variate.keySongMenuName, tvSongMenuName.getText());
                 startActivityForResult(intent, 5);
             }
+            cursorSongMenuId.close();
         });
 
         //删除歌单
@@ -117,31 +118,6 @@ public class MyFragment extends Fragment implements View.OnClickListener {
             return true;
         });
     }
-
-    // TODO: Rename method, update argument and hook method into UI event
-//    public void onButtonPressed(Uri uri) {
-//        if (mListener != null) {
-//            mListener.onFragmentInteraction(uri);
-//        }
-//    }
-
-//    @Override
-//    public void onAttach(Context context) {
-//        super.onAttach(context);
-//        if (context instanceof OnFragmentInteractionListener) {
-//            mListener = (OnFragmentInteractionListener) context;
-//        } else {
-//            throw new RuntimeException(context.toString()
-//                    + " must implement OnFragmentInteractionListener");
-//        }
-//    }
-
-//    @Override
-//    public void onDetach() {
-//        super.onDetach();
-//        mListener = null;
-//    }
-
 
     public void onClick(View v) {
         switch (v.getId()) {
@@ -195,6 +171,7 @@ public class MyFragment extends Fragment implements View.OnClickListener {
                 Variate.songMenuNameTable, null);
         preferencesSet = mContext.getSharedPreferences(Variate.set, MODE_PRIVATE);
         editorSet = preferencesSet.edit();
+        editorSet.apply();
         linearLayoutLocalMusic = view.findViewById(R.id.linear_layout_local_music);
         linearLayoutDownloadSong = view.findViewById(R.id.linear_layout_download);
         linearLayoutFavoriteSong = view.findViewById(R.id.linear_layout_my_favorite);
@@ -205,6 +182,7 @@ public class MyFragment extends Fragment implements View.OnClickListener {
         textLocalSongNumber = view.findViewById(R.id.text_local_song_number);
         textFavoriteSongNumber = view.findViewById(R.id.text_favorite_song_number);
         textRecentlySongNumber = view.findViewById(R.id.text_recently_song_number);
+        textDownloadSongNumber = view.findViewById(R.id.text_download_song_number);
 
         imgExpand = view.findViewById(R.id.img_expand);
 
@@ -231,6 +209,7 @@ public class MyFragment extends Fragment implements View.OnClickListener {
         super.onActivityResult(requestCode, resultCode, data);
         switch (requestCode) {
             case 1:
+            case 2:
             case 3:
             case 4:
             case 5:
@@ -241,11 +220,13 @@ public class MyFragment extends Fragment implements View.OnClickListener {
 
     //设置音乐数量
     private void setSongNumber() {
-        Cursor cursor = db.rawQuery("select "+Variate.keySongId+" from "+Variate.localSongListTable,null);
+        Cursor cursor = db.rawQuery("select " + Variate.keySongId + " from " + Variate.localSongListTable, null);
         textLocalSongNumber.setText(cursor.getCount() + "首");
-        cursor = db.rawQuery("select "+Variate.keySongId+" from "+Variate.favoriteSongListTable, null);
+        cursor = db.rawQuery("select " + Variate.keySongId + " from " + Variate.downloadSongListTable, null);
+        textDownloadSongNumber.setText(cursor.getCount() + "首");
+        cursor = db.rawQuery("select " + Variate.keySongId + " from " + Variate.favoriteSongListTable, null);
         textFavoriteSongNumber.setText(cursor.getCount() + "首");
-        cursor = db.rawQuery("select "+Variate.keySongId+" from "+Variate.recentlySongListTable, null);
+        cursor = db.rawQuery("select " + Variate.keySongId + " from " + Variate.recentlySongListTable, null);
         textRecentlySongNumber.setText(cursor.getCount() + "首");
         cursorSongMenuList = db.rawQuery("select * from " + Variate.songMenuNameTable, null);
         songMenuAdapter = new SongMenuAdapter(mContext, cursorSongMenuList);
@@ -294,12 +275,15 @@ public class MyFragment extends Fragment implements View.OnClickListener {
                             + "(songId integer primary key AUTOINCREMENT, "
                             + "songName text, "
                             + "singer text, "
-                            + "songUrl text,"
-                            + "songType interger)");
+                            + "songUrl text, "
+                            + "songType integer, "
+                            + "songMid text)");
                     Toast.makeText(mContext, "创建成功", Toast.LENGTH_SHORT).show();
+                    cursorSongMenuId.close();
                 } else {
                     Toast.makeText(mContext, "歌单已存在", Toast.LENGTH_SHORT).show();
                 }
+                cursor.close();
             } else {
                 Toast.makeText(mContext, "歌单名不能为空", Toast.LENGTH_SHORT).show();
             }
@@ -309,37 +293,44 @@ public class MyFragment extends Fragment implements View.OnClickListener {
 
     //删除歌单对话框
     private void deleteSongMenuDialog(View v) {
-        final View view = v;
-        TextView textViewSongMenuName = view.findViewById(R.id.text_song_menu_name);
+        TextView textViewSongMenuName = v.findViewById(R.id.text_song_menu_name);
         AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
-        builder.setTitle("删除歌单")
-                .setMessage("确定删除“" + textViewSongMenuName.getText() + "”歌单")
-                .setPositiveButton("确定", (dialog, which) -> {
-                    TextView textViewSongMenuName1 = view.findViewById(R.id.text_song_menu_name);
-                    String[] songMenuName = new String[]{textViewSongMenuName1.getText().toString()};
-                    Cursor cursorSongMenuId = db.rawQuery("select " + Variate.keySongMenuId + " from " +
-                            Variate.songMenuNameTable
-                            + " where "
-                            + Variate.keySongMenuName
-                            + " = ?", songMenuName);
-                    if (cursorSongMenuId.getCount() == 0) {
-                        Toast.makeText(mContext, "获取歌单id失败", Toast.LENGTH_SHORT).show();
-                    } else {
-                        cursorSongMenuId.moveToFirst();
-                        int id = cursorSongMenuId.getInt(0);
-                        //删除表
-                        String sql = "drop table " + Variate.songMenuTable + "_" + id;
-                        db.execSQL(sql);
-                        db.delete(Variate.songMenuNameTable, Variate.keySongMenuName + " =?",
-                                songMenuName);
-                        cursorSongMenuList = db.rawQuery("select * from " +
-                                Variate.songMenuNameTable, null);
-                        songMenuAdapter = new SongMenuAdapter(mContext, cursorSongMenuList);
-                        listSongMenu.setAdapter(songMenuAdapter);
-                        Toast.makeText(mContext, "删除成功", Toast.LENGTH_SHORT).show();
-                    }
-                    cursorSongMenuId.close();
-                })
-                .setNegativeButton("取消", null).show();
+        builder.setTitle("删除歌单").setPositiveButton("确定", (dialog, which) -> {
+            String[] songMenuName = new String[]{textViewSongMenuName.getText().toString()};
+            Cursor cursorSongMenuId = db.rawQuery("select " + Variate.keySongMenuId + " from " +
+                    Variate.songMenuNameTable
+                    + " where "
+                    + Variate.keySongMenuName
+                    + " = ?", songMenuName);
+            if (cursorSongMenuId.getCount() == 0) {
+                Toast.makeText(mContext, "获取歌单id失败", Toast.LENGTH_SHORT).show();
+            } else {
+                cursorSongMenuId.moveToFirst();
+                int id = cursorSongMenuId.getInt(0);
+                //删除表
+                String sql = "drop table " + Variate.songMenuTable + "_" + id;
+                db.execSQL(sql);
+                db.delete(Variate.songMenuNameTable, Variate.keySongMenuName + " =?",
+                        songMenuName);
+                cursorSongMenuList = db.rawQuery("select * from " +
+                        Variate.songMenuNameTable, null);
+                songMenuAdapter = new SongMenuAdapter(mContext, cursorSongMenuList);
+                listSongMenu.setAdapter(songMenuAdapter);
+                Toast.makeText(mContext, "删除成功", Toast.LENGTH_SHORT).show();
+            }
+            cursorSongMenuId.close();
+        }).setMessage("确定删除“" + textViewSongMenuName.getText() + "”歌单")
+          .setNegativeButton("取消", null).show();
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        if (dataBase != null){
+            dataBase.close();
+        }
+        if (db != null){
+            db.close();
+        }
     }
 }

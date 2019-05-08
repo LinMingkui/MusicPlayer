@@ -22,13 +22,14 @@ import com.musicplayer.adapter.SongListAdapter;
 import com.musicplayer.database.DataBase;
 import com.musicplayer.ui.widget.PlayBarLayout;
 import com.musicplayer.utils.BaseActivity;
+import com.musicplayer.utils.DownloadUtils;
 import com.musicplayer.utils.Variate;
 
 import java.lang.reflect.Field;
 
 import static com.musicplayer.utils.AudioUtils.startPlay;
-import static com.musicplayer.utils.MethodUtils.addFavorite;
 import static com.musicplayer.utils.MethodUtils.addSongMenu;
+import static com.musicplayer.utils.MethodUtils.addToFavorite;
 import static com.musicplayer.utils.MethodUtils.deleteSong;
 import static com.musicplayer.utils.MethodUtils.getSqlBaseOrder;
 import static com.musicplayer.utils.MethodUtils.setPlayMessage;
@@ -95,9 +96,10 @@ public class SongMenuActivity extends BaseActivity implements View.OnClickListen
 
         preferencesPlayList = getSharedPreferences(Variate.playList, MODE_PRIVATE);
         editorPlayList = preferencesPlayList.edit();
+        editorPlayList.apply();
         preferencesSet = getSharedPreferences(Variate.set, MODE_PRIVATE);
         editorSet = preferencesSet.edit();
-
+        editorSet.apply();
         tvTitleName = findViewById(R.id.tv_title_name);
         imgTitleBack = findViewById(R.id.img_title_back);
         imgTitleSearch = findViewById(R.id.img_title_search);
@@ -211,9 +213,13 @@ public class SongMenuActivity extends BaseActivity implements View.OnClickListen
     //音乐列表菜单点击事件
     @SuppressLint("RestrictedApi")
     public void onSongListItemMenuClick(View view, int position) {
+        Log.e(TAG,"position "+position);
         cursorSong.moveToPosition(position);
         PopupMenu pm = new PopupMenu(mContext, view.findViewById(R.id.img_song_list_menu));
         pm.getMenuInflater().inflate(R.menu.memu_pm_local_song_list, pm.getMenu());
+        if (cursorSong.getInt(cursorSong.getColumnIndex(Variate.keySongType)) == Variate.SONG_TYPE_LOCAL){
+            pm.getMenu().getItem(3).setVisible(false);
+        }
         pm.setOnMenuItemClickListener(menuItem -> {
             songListItemMenuItemClick(menuItem.getItemId());
             return false;
@@ -237,7 +243,7 @@ public class SongMenuActivity extends BaseActivity implements View.OnClickListen
         switch (dialogItemId) {
             //添加或移除收藏
             case R.id.item_add_favorite:
-                addFavorite(mContext, db, cursorSong);
+                addToFavorite(mContext, db, cursorSong);
                 break;
             //添加到歌单
             case R.id.item_add_song_menu:
@@ -247,7 +253,11 @@ public class SongMenuActivity extends BaseActivity implements View.OnClickListen
             //删除
             case R.id.item_delete:
                 deleteSong(mContext, db, table, cursorSong,songListAdapter);
-                cursorSong = db.rawQuery("select * from " + table, null);
+                cursorSong = db.rawQuery(sql, null);
+                break;
+            case R.id.item_download:
+                DownloadUtils downloadUtils = new DownloadUtils(mContext,null,cursorSong);
+                downloadUtils.startDownload();
                 break;
         }
     }

@@ -34,14 +34,6 @@
             android:layout_below="@id/cardview_singer"
             android:layout_alignParentBottom="true">
 
-            <!--<TextView-->
-                <!--android:id="@+id/tv_lrc"-->
-                <!--android:layout_width="match_parent"-->
-                <!--android:layout_height="match_parent"-->
-                <!--android:layout_marginLeft="20dp"-->
-                <!--android:layout_marginRight="20dp"-->
-                <!--android:gravity="center"-->
-                <!--android:textSize="18sp" />-->
             <com.musicplayer.ui.widget.SingleLrcView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

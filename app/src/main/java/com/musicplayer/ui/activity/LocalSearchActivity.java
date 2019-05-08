@@ -24,14 +24,15 @@ import com.musicplayer.adapter.SongListAdapter;
 import com.musicplayer.database.DataBase;
 import com.musicplayer.ui.widget.PlayBarLayout;
 import com.musicplayer.utils.BaseActivity;
+import com.musicplayer.utils.DownloadUtils;
 import com.musicplayer.utils.Variate;
 
 import java.lang.reflect.Field;
 
 import static com.musicplayer.utils.AudioUtils.startPlay;
-import static com.musicplayer.utils.MethodUtils.addFavorite;
 import static com.musicplayer.utils.MethodUtils.addSong;
 import static com.musicplayer.utils.MethodUtils.addSongMenu;
+import static com.musicplayer.utils.MethodUtils.addToFavorite;
 import static com.musicplayer.utils.MethodUtils.deleteSong;
 import static com.musicplayer.utils.MethodUtils.setPlayMessage;
 
@@ -105,6 +106,7 @@ public class LocalSearchActivity extends BaseActivity implements View.OnClickLis
         db = dataBase.getWritableDatabase();
         preferencesPlayList = getSharedPreferences(Variate.playList, MODE_PRIVATE);
         editorPlayList = preferencesPlayList.edit();
+        editorPlayList.apply();
         Intent intent = getIntent();
         fromTable = intent.getStringExtra("tableName");
         Log.e(TAG, fromTable);
@@ -245,6 +247,9 @@ public class LocalSearchActivity extends BaseActivity implements View.OnClickLis
         cursorSong.moveToPosition(position);
         PopupMenu pm = new PopupMenu(mContext, view.findViewById(R.id.img_song_list_menu));
         pm.getMenuInflater().inflate(R.menu.memu_pm_local_song_list, pm.getMenu());
+        if (cursorSong.getInt(cursorSong.getColumnIndex(Variate.keySongType)) == Variate.SONG_TYPE_LOCAL){
+            pm.getMenu().getItem(3).setVisible(false);
+        }
         pm.setOnMenuItemClickListener(menuItem -> {
             songListItemMenuItemClick(menuItem.getItemId());
             return false;
@@ -267,7 +272,7 @@ public class LocalSearchActivity extends BaseActivity implements View.OnClickLis
         switch (dialogItemId) {
             //添加或移除收藏
             case R.id.item_add_favorite:
-                addFavorite(mContext, db, cursorSong);
+                addToFavorite(mContext, db, cursorSong);
                 break;
             //添加到歌单
             case R.id.item_add_song_menu:
@@ -282,6 +287,10 @@ public class LocalSearchActivity extends BaseActivity implements View.OnClickLis
                 deleteSong(mContext, db, fromTable, cursorSong, songListAdapter);
                 cursorSong = db.rawQuery("select * from " + Variate.localSearchSongListTable
                         + " order by " + Variate.keySongName + " collate localized asc", null);
+                break;
+            case R.id.item_download:
+                DownloadUtils downloadUtils = new DownloadUtils(mContext,null,cursorSong);
+                downloadUtils.startDownload();
                 break;
         }
     }

@@ -10,13 +10,12 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_weight="1"
         android:background="@color/home_background"
         android:fastScrollEnabled="true">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingLeft="5dp"
             android:paddingTop="10dp"
@@ -117,6 +116,7 @@
                                 android:textSize="20sp" />
 
                             <TextView
+                                android:id="@+id/text_download_song_number"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="center_vertical"

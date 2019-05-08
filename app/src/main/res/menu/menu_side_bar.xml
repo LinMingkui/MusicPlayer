@@ -4,21 +4,17 @@
     <item android:title="功能">
         <menu>
             <item
-                android:id="@+id/nav_menu_playQueue"
                 android:icon="@drawable/ic_playlist"
                 android:iconTint="@color/black"
                 android:title="播放列表" />
             <item
-                android:id="@+id/nav_menu_equalizer"
                 android:icon="@drawable/ic_equalizer"
                 android:iconTint="@color/black"
                 android:title="均衡器" />
             <item
-                android:id="@+id/nav_menu_import"
                 android:icon="@drawable/ic_import"
                 android:title="导入歌单" />
             <item
-                android:id="@+id/nav_menu_count_down"
                 android:icon="@drawable/ic_timer_off"
                 android:iconTint="@color/black"
                 android:title="定时关闭" />
@@ -28,12 +24,10 @@
     <item android:title="其它">
         <menu>
             <item
-                android:id="@+id/nav_menu_about"
                 android:icon="@drawable/ic_about"
                 android:iconTint="@color/black"
                 android:title="关于" />
             <item
-                android:id="@+id/nav_menu_feedback"
                 android:icon="@drawable/ic_feedback"
                 android:title="反馈" />
             <item android:title="" />

@@ -21,13 +21,14 @@ import com.musicplayer.adapter.SongListAdapter;
 import com.musicplayer.database.DataBase;
 import com.musicplayer.ui.widget.PlayBarLayout;
 import com.musicplayer.utils.BaseActivity;
+import com.musicplayer.utils.DownloadUtils;
 import com.musicplayer.utils.Variate;
 
 import java.lang.reflect.Field;
 
 import static com.musicplayer.utils.AudioUtils.startPlay;
-import static com.musicplayer.utils.MethodUtils.addFavorite;
 import static com.musicplayer.utils.MethodUtils.addSongMenu;
+import static com.musicplayer.utils.MethodUtils.addToFavorite;
 import static com.musicplayer.utils.MethodUtils.deleteSong;
 import static com.musicplayer.utils.MethodUtils.getSqlBaseOrder;
 import static com.musicplayer.utils.MethodUtils.setPlayMessage;
@@ -90,9 +91,10 @@ public class RecentlyPlayActivity extends BaseActivity implements View.OnClickLi
 
         preferencesPlayList = getSharedPreferences(Variate.playList, MODE_PRIVATE);
         editorPlayList = preferencesPlayList.edit();
+        editorPlayList.apply();
         preferencesSet = getSharedPreferences(Variate.set, MODE_PRIVATE);
         editorSet = preferencesSet.edit();
-
+        editorSet.apply();
         imgTitleBack = findViewById(R.id.img_title_back);
         imgTitleSearch = findViewById(R.id.img_title_search);
         imgTitleMenu = findViewById(R.id.img_title_menu);
@@ -114,8 +116,8 @@ public class RecentlyPlayActivity extends BaseActivity implements View.OnClickLi
                 startActivityForResult(intent, 1);
                 break;
             case R.id.img_title_menu:
-                preferencesSet = getSharedPreferences(Variate.set, MODE_PRIVATE);
-                editorSet = preferencesSet.edit();
+//                preferencesSet = getSharedPreferences(Variate.set, MODE_PRIVATE);
+//                editorSet = preferencesSet.edit();
                 titleMenu();
                 break;
         }
@@ -162,6 +164,9 @@ public class RecentlyPlayActivity extends BaseActivity implements View.OnClickLi
         cursorSong.moveToPosition(position);
         PopupMenu pm = new PopupMenu(mContext, view.findViewById(R.id.img_song_list_menu));
         pm.getMenuInflater().inflate(R.menu.memu_pm_local_song_list, pm.getMenu());
+        if (cursorSong.getInt(cursorSong.getColumnIndex(Variate.keySongType)) == Variate.SONG_TYPE_LOCAL){
+            pm.getMenu().getItem(3).setVisible(false);
+        }
         pm.setOnMenuItemClickListener(menuItem -> {
             songListItemMenuItemClick(menuItem.getItemId());
             return false;
@@ -185,7 +190,7 @@ public class RecentlyPlayActivity extends BaseActivity implements View.OnClickLi
         switch (dialogItemId) {
             //添加或移除收藏
             case R.id.item_add_favorite:
-                addFavorite(mContext, db, cursorSong);
+                addToFavorite(mContext, db, cursorSong);
                 break;
             //添加到歌单
             case R.id.item_add_song_menu:
@@ -197,9 +202,19 @@ public class RecentlyPlayActivity extends BaseActivity implements View.OnClickLi
                 deleteSong(mContext, db, Variate.recentlySongListTable, cursorSong, songListAdapter);
                 cursorSong = db.rawQuery(sql, null);
                 break;
+            case R.id.item_download:
+                DownloadUtils downloadUtils = new DownloadUtils(mContext,null,cursorSong);
+                downloadUtils.startDownload();
+                break;
         }
     }
 
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        cursorSong = db.rawQuery(sql,null);
+        songListAdapter.changeData();
+        songListAdapter.notifyDataSetChanged();
+    }
     @Override
     public void OnPlaySongChange() {
         songListAdapter.changeData();
@@ -220,6 +235,7 @@ public class RecentlyPlayActivity extends BaseActivity implements View.OnClickLi
 
     protected void onDestroy() {
         super.onDestroy();
+        setResult(1);
         dataBase.close();
         db.close();
         cursorSong.close();

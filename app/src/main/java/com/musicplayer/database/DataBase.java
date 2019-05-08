@@ -9,52 +9,59 @@ public class DataBase extends SQLiteOpenHelper {
 
     //本地音乐列表
     private static final String CREATE_BOOK_LOCAL = "create table localSongListTable("
-            + "songId integer primary key, "
+            + "songId integer primary key AUTOINCREMENT, "
             + "songName text, "
             + "singer text, "
             + "songUrl text, "
-            + "songType integer)";
+            + "songType integer, "
+            + "songMid text)";
     //下载音乐列表
     private static final String CREATE_BOOK_DOWNLOAD = "create table downloadSongListTable("
             + "songId integer primary key AUTOINCREMENT, "
             + "songName text, "
             + "singer text, "
             + "songUrl text, "
-            + "songType integer)";
+            + "songType integer, "
+            + "songMid text)";
     //收藏音乐列表
     private static final String CREATE_BOOK_FAVORITE = "create table favoriteSongListTable("
             + "songId integer primary key AUTOINCREMENT, "
             + "songName text, "
             + "singer text, "
             + "songUrl text, "
-            + "songType integer)";
+            + "songType integer, "
+            + "songMid text)";
     //最近播放音乐列表
     private static final String CREATE_BOOK_RECENTLY = "create table recentlySongListTable("
             + "songId integer primary key AUTOINCREMENT, "
             + "songName text, "
             + "singer text, "
             + "songUrl text, "
-            + "songType integer)";
+            + "songType integer, "
+            + "songMid text)";
     //本地搜索音乐列表
     private static final String CREATE_BOOK_SEARCH = "create table localSearchSongListTable("
             + "songId integer primary key AUTOINCREMENT, "
             + "songName text, "
             + "singer text, "
             + "songUrl text, "
-            + "songType integer)";
+            + "songType integer, "
+            + "songMid text)";
     //正在播放音乐列表
     private static final String CREATE_BOOK_PLAY = "create table playListTable("
             + "songId integer primary key AUTOINCREMENT, "
             + "songName text, "
             + "singer text, "
             + "songUrl text, "
-            + "songType integer)";
+            + "songType integer, "
+            + "songMid text)";
 
     //歌单列表
     private static final String CREATE_BOOK_SONG_MENU = "create table songMenuNameTable("
             + "songMenuid integer primary key AUTOINCREMENT, "
             + "songMenuName text, "
-            + "songNumber integer)";
+            + "songNumber integer,"
+            + "singer text)";
 
     public DataBase(Context context, String name,
                     SQLiteDatabase.CursorFactory factory, int version) {

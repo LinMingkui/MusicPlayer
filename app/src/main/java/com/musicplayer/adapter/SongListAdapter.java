@@ -25,7 +25,7 @@ public class SongListAdapter extends BaseAdapter {
     private int songNumber, playPosition;
     private String table;
     private String playTable;
-    private String songUrl;
+    private String songUrl, songMid;
     private Context mContext;
     private SharedPreferences preferencesPlayList;
     private SharedPreferences preferencesSet;
@@ -49,6 +49,7 @@ public class SongListAdapter extends BaseAdapter {
         playPosition = preferencesPlayList.getInt("position", 0);
         playTable = preferencesPlayList.getString(Variate.keyTableName, Variate.localSongListTable);
         songUrl = preferencesPlayList.getString(Variate.keySongUrl, "");
+        songMid = preferencesPlayList.getString(Variate.keySongMid, "");
         dataBase = new DataBase(mContext, Variate.dataBaseName, null, 1);
         db = dataBase.getWritableDatabase();
     }
@@ -78,6 +79,7 @@ public class SongListAdapter extends BaseAdapter {
             holder.textSongPosition = convertView.findViewById(R.id.text_song_position);
             holder.imgPlaying = convertView.findViewById(R.id.img_playing);
             holder.imgSongListMenu = convertView.findViewById(R.id.img_song_list_menu);
+            holder.imgSongType = convertView.findViewById(R.id.img_song_type);
             convertView.setTag(holder);
         } else {
             holder = (ViewHolder) convertView.getTag();
@@ -86,9 +88,27 @@ public class SongListAdapter extends BaseAdapter {
             boolean b;                  //判断是否设置播放图标
             cursor.moveToPosition(position);
             if (playTable.equals(table)) {
-                b = songUrl.equals(cursor.getString(cursor.getColumnIndex(Variate.keySongUrl)));
+                if (preferencesPlayList.getInt(Variate.keySongType, Variate.SONG_TYPE_LOCAL) == Variate.SONG_TYPE_LOCAL) {
+                    b = songUrl.equals(cursor.getString(cursor.getColumnIndex(Variate.keySongUrl)));
+                } else {
+                    b = songMid.equals(cursor.getString(cursor.getColumnIndex(Variate.keySongMid)));
+                }
             } else {
                 b = false;
+            }
+            switch (cursor.getInt(cursor.getColumnIndex(Variate.keySongType))) {
+                case Variate.SONG_TYPE_QQ:
+                    holder.imgSongType.setImageResource(R.drawable.ic_song_type_qq);
+                    break;
+                case Variate.SONG_TYPE_KG:
+                    holder.imgSongType.setImageResource(R.drawable.ic_song_type_kg);
+                    break;
+                case Variate.SONG_TYPE_WYY:
+                    holder.imgSongType.setImageResource(R.drawable.ic_song_type_wyy);
+                    break;
+                default:
+                    holder.imgSongType.setImageResource(R.drawable.ic_song_type_local);
+                    break;
             }
             if (b) {
                 holder.imgPlaying.setVisibility(View.VISIBLE);
@@ -116,6 +136,7 @@ public class SongListAdapter extends BaseAdapter {
         TextView textSongPosition;
         ImageView imgPlaying;
         ImageView imgSongListMenu;
+        ImageView imgSongType;
     }
 
     public interface OnSongListItemMenuClickListener {
@@ -136,9 +157,6 @@ public class SongListAdapter extends BaseAdapter {
         playPosition = preferencesPlayList.getInt("position", 0);
         playTable = preferencesPlayList.getString(Variate.keyTableName, Variate.localSongListTable);
         songUrl = preferencesPlayList.getString(Variate.keySongUrl, "");
-    }
-
-    public void setPlayPosition() {
-        playPosition = -1;
+        songMid = preferencesPlayList.getString(Variate.keySongMid, "");
     }
 }

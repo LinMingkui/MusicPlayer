@@ -31,8 +31,8 @@ import java.util.Locale;
 
 import static com.musicplayer.utils.AudioUtils.getAllSongs;
 import static com.musicplayer.utils.AudioUtils.startPlay;
-import static com.musicplayer.utils.MethodUtils.addFavorite;
 import static com.musicplayer.utils.MethodUtils.addSongMenu;
+import static com.musicplayer.utils.MethodUtils.addToFavorite;
 import static com.musicplayer.utils.MethodUtils.deleteSong;
 import static com.musicplayer.utils.MethodUtils.getSqlBaseOrder;
 import static com.musicplayer.utils.MethodUtils.saveSong;
@@ -61,7 +61,7 @@ public class LocalSongActivity extends BaseActivity implements View.OnClickListe
 
     private List<Song> songs;
     private Cursor cursorSong;
-    private int result = -1;
+    private int result = 1;
     private String sql;
 
     @Override
@@ -105,6 +105,7 @@ public class LocalSongActivity extends BaseActivity implements View.OnClickListe
         cursorSong.moveToPosition(position);
         PopupMenu pm = new PopupMenu(mContext, view.findViewById(R.id.img_song_list_menu));
         pm.getMenuInflater().inflate(R.menu.memu_pm_local_song_list, pm.getMenu());
+        pm.getMenu().getItem(3).setVisible(false);
         pm.setOnMenuItemClickListener(menuItem -> {
             songListItemMenuItemClick(menuItem.getItemId());
             return false;
@@ -128,7 +129,7 @@ public class LocalSongActivity extends BaseActivity implements View.OnClickListe
         switch (dialogItemId) {
             //添加或移除收藏
             case R.id.item_add_favorite:
-                addFavorite(mContext, db, cursorSong);
+                addToFavorite(mContext, db, cursorSong);
                 break;
             //添加到歌单
             case R.id.item_add_song_menu:
@@ -137,7 +138,7 @@ public class LocalSongActivity extends BaseActivity implements View.OnClickListe
                 break;
             //删除
             case R.id.item_delete:
-                deleteSong(mContext, db, Variate.localSongListTable, cursorSong,songListAdapter);
+                deleteSong(mContext, db, Variate.localSongListTable, cursorSong, songListAdapter);
                 cursorSong = db.rawQuery(sql, null);
                 break;
         }
@@ -146,7 +147,7 @@ public class LocalSongActivity extends BaseActivity implements View.OnClickListe
     //上下一曲
     @Override
     public void OnPlaySongChange() {
-        if (songListAdapter != null){
+        if (songListAdapter != null) {
             songListAdapter.changeData();
             songListAdapter.notifyDataSetChanged();
         }
@@ -233,10 +234,10 @@ public class LocalSongActivity extends BaseActivity implements View.OnClickListe
                     break;
             }
             if (b) {
-                editorSet.putInt(Variate.keyLocalSort,order);
+                editorSet.putInt(Variate.keyLocalSort, order);
                 editorSet.apply();
-                sql = getSqlBaseOrder(Variate.localSongListTable,preferencesSet);
-                cursorSong = db.rawQuery(sql,null);
+                sql = getSqlBaseOrder(Variate.localSongListTable, preferencesSet);
+                cursorSong = db.rawQuery(sql, null);
                 songListAdapter.changeData();
                 songListAdapter.notifyDataSetChanged();
             }
@@ -256,36 +257,6 @@ public class LocalSongActivity extends BaseActivity implements View.OnClickListe
         }
     }
 
-//    private void titleMenu() {
-//        final PopupMenu pm = new PopupMenu(mContext, imgTitleMenu);
-//        pm.getMenuInflater().inflate(R.menu.menu_pm_local_song, pm.getMenu());
-//        pm.setOnMenuItemClickListener(menuItem -> {
-//            switch (menuItem.getItemId()) {
-//                case R.id.item_scan_local_song:
-//                    Intent intent = new Intent(mContext, ScanLocalSongActivity.class);
-//                    startActivityForResult(intent, 2);
-//                    pm.dismiss();
-//                    break;
-//                case R.id.item_select_order_way:
-//                    Log.e(TAG, "排序");
-////                        pm.dismiss();
-//                    progressDialog = new ProgressDialog(mContext);
-//                    progressDialog.setMessage("正在存入数据库");
-//                    progressDialog.setCancelable(false);
-//                    showOrderPopupMenu(mContext, imgTitleMenu, db,
-//                            Variate.localSongListTable, preferencesSet,
-//                            editorSet, changeUIHandler, progressDialog,
-//                            Variate.keyLocalSort);
-//
-//                    break;
-//
-//            }
-//            return false;
-//        });
-//        pm.show();
-//
-//    }
-
     private void setClickListener() {
         imgTitleBack.setOnClickListener(this);
         imgTitleSearch.setOnClickListener(this);
@@ -293,12 +264,15 @@ public class LocalSongActivity extends BaseActivity implements View.OnClickListe
         playBarLayout.setOnPlaySongChangeListener(this);
     }
 
+    @SuppressLint("CommitPrefEdits")
     private void init() {
         mContext = LocalSongActivity.this;
         preferencesPlayList = getSharedPreferences(Variate.playList, MODE_PRIVATE);
         editorPlayList = preferencesPlayList.edit();
+        editorPlayList.apply();
         preferencesSet = getSharedPreferences(Variate.set, MODE_PRIVATE);
         editorSet = preferencesSet.edit();
+        editorSet.apply();
         dataBase = new DataBase(this, Variate.dataBaseName, null, 1);
         db = dataBase.getWritableDatabase();
         db.setLocale(Locale.SIMPLIFIED_CHINESE);
@@ -315,7 +289,7 @@ public class LocalSongActivity extends BaseActivity implements View.OnClickListe
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        cursorSong = db.rawQuery(sql,null);
+        cursorSong = db.rawQuery(sql, null);
         songListAdapter.changeData();
         songListAdapter.notifyDataSetChanged();
     }
@@ -324,7 +298,7 @@ public class LocalSongActivity extends BaseActivity implements View.OnClickListe
     protected void onStart() {
         super.onStart();
         playBarLayout.mBindService(mContext);
-        if (songListAdapter != null){
+        if (songListAdapter != null) {
             songListAdapter.changeData();
             songListAdapter.notifyDataSetChanged();
         }

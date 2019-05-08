@@ -1,5 +1,7 @@
 package com.musicplayer.utils;
 
+import android.os.Environment;
+
 public class Variate {
     //音乐列表数据库名
     public static final String dataBaseName = "DataBase.db";
@@ -17,10 +19,12 @@ public class Variate {
     public static final String songMenuNameTable = "songMenuNameTable";
     //播放列表数据库表名
     public static final String playListTable = "playListTable";
-
     //歌单数据库表名
     public static final String songMenuTable = "songMenuTable";
 
+    public static final String SONG_PATH = Environment.getExternalStorageDirectory().getAbsolutePath()+"/juhemusic/song";
+    public static final String LRC_PATH = Environment.getExternalStorageDirectory().getAbsolutePath()+"/juhemusic/lrc";
+    public static final String PIC_PATH = Environment.getExternalStorageDirectory().getAbsolutePath()+"/juhemusic/pic";
 
     public static final String ACTION_DOWN = "com.musicplay.NOTIFICATION_VIEW_CLICK";
 
@@ -29,7 +33,6 @@ public class Variate {
     public static final String ACTION_PREV = "com.musicplay.UI_PREV";
 
     public static final String ACTION_NEXT = "com.musicplay.UI_NEXT";
-
 
     public static final int ID_FAVORITE = 1;
     public static final int ID_PREV = 2;
@@ -42,7 +45,12 @@ public class Variate {
     //歌曲类型
     public static final int SONG_TYPE_LOCAL = 1;
     public static final int SONG_TYPE_QQ = 2;
-    public static final int SONG_TYPE_KUGOU = 3;
+    public static final int SONG_TYPE_KG = 3;
+    public static final int SONG_TYPE_WYY = 4;
+
+    //按什么（Mid、Name）搜索
+    public static final String FILTER_ID = "id";
+    public static final String FILTER_NAME = "name";
     //保持播放信息的文件名
     public static final String playList = "playList";
     //保存软件配置的文件名
@@ -59,6 +67,8 @@ public class Variate {
     public static final String keySongNumber = "songNumber";
     //歌曲类型
     public static final String keySongType = "songType";
+    //歌曲类型
+    public static final String keySongMid = "songMid";
 
     //表名
     public static final String keyTableName = "tableName";
@@ -83,7 +93,8 @@ public class Variate {
     public static final String keyLocalSearchSort = "localSearchSort";
     //首页歌单是否展开
     public static final String keySongMenuExpand = "songMenuExpand";
-
+    //播放的音乐是否为本地音乐
+    public static final String keyIsLocal = "isLocal";
     //根据音乐名升序排序
     public static final int SORT_NAME_ASC = 0;
     //根据音乐名降序排序
@@ -100,7 +111,7 @@ public class Variate {
     //更新首页歌单数量信息
     public static final int SORT_COMPLETE = 6;
 
-
+    public static Song song;
     //列表循环
     public static final int ORDER = 0;
     //随机播放
@@ -157,6 +168,5 @@ public class Variate {
     public static String keyIsInitLocalList = "isInitLocalList";
     //是否更新播放列表
     public static boolean isUpdatePlayList = false;
-
 
 }

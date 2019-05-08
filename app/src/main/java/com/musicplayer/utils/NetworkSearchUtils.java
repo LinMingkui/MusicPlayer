@@ -53,7 +53,7 @@ public class NetworkSearchUtils {
                         Log.e(TAG, "songName:" + songName + " /singer:" + builderSinger.toString() + " /songMid:" + songMid);
                         songs[i].setSongName(songName);
                         songs[i].setSinger(builderSinger.toString());
-                        songs[i].setQQSongMid(songMid);
+                        songs[i].setSongMid(songMid);
                     }
                 }
             } catch (IOException e) {

@@ -1,5 +1,6 @@
 package com.musicplayer.adapter;
 
+import android.app.Activity;
 import android.content.Context;
 import android.database.Cursor;
 import android.view.LayoutInflater;
@@ -9,8 +10,14 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.musicplayer.R;
+import com.musicplayer.utils.NetworkUtils;
 import com.musicplayer.utils.Variate;
+
+import java.io.File;
+
+import static com.musicplayer.utils.MethodUtils.savePic;
 
 
 public class SongMenuAdapter extends BaseAdapter {
@@ -48,7 +55,7 @@ public class SongMenuAdapter extends BaseAdapter {
             holder = new ViewHolder();
             holder.textViewSongMenuName = convertView.findViewById(R.id.text_song_menu_name);
             holder.textViewSongNumber = convertView.findViewById(R.id.text_song_number);
-            holder.imgSongMenu = convertView.findViewById(R.id.img_song_menu);
+            holder.imgSinger = convertView.findViewById(R.id.img_singer);
             convertView.setTag(holder);
         } else {
             holder = (ViewHolder) convertView.getTag();
@@ -60,13 +67,29 @@ public class SongMenuAdapter extends BaseAdapter {
                     cursor.getColumnIndex(Variate.keySongMenuName)));
             int number = cursor.getInt(cursor.getColumnIndex(Variate.keySongNumber));
             holder.textViewSongNumber.setText(number + "首");
-//        holder.imgSongMenu.
+            File file = new File(Variate.PIC_PATH, cursor.getString(
+                    cursor.getColumnIndex(Variate.keySinger)).replace('/', ' '));
+            if (file.exists()) {
+                Glide.with(context).load(file).into(holder.imgSinger);
+            } else {
+                NetworkUtils networkUtils = new NetworkUtils();
+                networkUtils.getSongInfo(cursor.getString(cursor.getColumnIndex(Variate.keySinger)),
+                        "qq", Variate.FILTER_NAME);
+                networkUtils.setOnGetSongInfoListener(song -> {
+                    savePic(context, song.getSingerUrl(), file);
+                    ((Activity) context).runOnUiThread(() -> {
+                        Glide.with(context).load(file)
+                                .error(R.mipmap.img_default_singer).into(holder.imgSinger);
+                    });
+
+                });
+            }
         }
         return convertView;
     }
 
     class ViewHolder {
-        ImageView imgSongMenu;
+        ImageView imgSinger;
         TextView textViewSongMenuName;
         TextView textViewSongNumber;
     }

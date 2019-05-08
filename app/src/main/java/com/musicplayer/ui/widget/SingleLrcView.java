@@ -40,7 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 
 public class SingleLrcView extends View {
-    private static final String DEFAULT_CONTENT = "Empty";
+    private static final String DEFAULT_CONTENT = "暂无歌词";
     private List<Lrc> mLrcData;
     private TextPaint mTextPaint;
     private String mDefaultContent;
@@ -87,7 +87,7 @@ public class SingleLrcView extends View {
     boolean isDownAction;
 
     public SingleLrcView(Context context) {
-        this(context, (AttributeSet)null);
+        this(context, null);
     }
 
     public SingleLrcView(Context context, @Nullable AttributeSet attrs) {
@@ -150,7 +150,7 @@ public class SingleLrcView extends View {
         this.mTextPaint.setAntiAlias(true);
         this.mTextPaint.setTextAlign(Align.CENTER);
         this.mTextPaint.setTextSize(this.mLrcTextSize);
-        this.mDefaultContent = "Empty";
+        this.mDefaultContent = "暂无歌词";
         this.mIndicatorPaint = new Paint();
         this.mIndicatorPaint.setAntiAlias(true);
         this.mIndicatorPaint.setStrokeWidth(this.mIndicatorLineWidth);
@@ -188,7 +188,7 @@ public class SingleLrcView extends View {
     }
 
     public void setLrcData(List<Lrc> lrcData) {
-        this.resetView("Empty");
+        this.resetView("暂无歌词");
         this.mLrcData = lrcData;
         this.invalidate();
     }
@@ -222,7 +222,7 @@ public class SingleLrcView extends View {
 
             if (this.isShowTimeIndicator) {
                 this.mPlayDrawable.draw(canvas);
-                long time = ((Lrc)this.mLrcData.get(indicatePosition)).getTime();
+                long time = this.mLrcData.get(indicatePosition).getTime();
                 float timeWidth = this.mIndicatorPaint.measureText(LrcHelper.formatTime(time));
                 this.mIndicatorPaint.setColor(this.mIndicatorLineColor);
                 canvas.drawLine((float)this.mPlayRect.right + this.mIconLineGap, (float)(this.getHeight() / 2), (float)this.getWidth() - timeWidth * 1.3F, (float)(this.getHeight() / 2), this.mIndicatorPaint);
@@ -236,8 +236,8 @@ public class SingleLrcView extends View {
     }
 
     private void drawLrc(Canvas canvas, float x, float y, int i) {
-        String text = ((Lrc)this.mLrcData.get(i)).getText();
-        StaticLayout staticLayout = (StaticLayout)this.mLrcMap.get(text);
+        String text = this.mLrcData.get(i).getText();
+        StaticLayout staticLayout = this.mLrcMap.get(text);
         if (staticLayout == null) {
             this.mTextPaint.setTextSize(this.mLrcTextSize);
             staticLayout = new StaticLayout(text, this.mTextPaint, this.getLrcWidth(), Alignment.ALIGN_NORMAL, 1.0F, 0.0F, false);
@@ -281,11 +281,11 @@ public class SingleLrcView extends View {
         int linePos = 0;
 
         for(int i = 0; i < this.getLrcCount(); ++i) {
-            Lrc lrc = (Lrc)this.mLrcData.get(i);
+            Lrc lrc = this.mLrcData.get(i);
             if (time >= lrc.getTime()) {
                 if (i == this.getLrcCount() - 1) {
                     linePos = this.getLrcCount() - 1;
-                } else if (time < ((Lrc)this.mLrcData.get(i + 1)).getTime()) {
+                } else if (time < this.mLrcData.get(i + 1).getTime()) {
                     linePos = i;
                     break;
                 }
@@ -297,7 +297,7 @@ public class SingleLrcView extends View {
 
     private void scrollToPosition(int linePosition) {
         float scrollY = this.getItemOffsetY(linePosition);
-        ValueAnimator animator = ValueAnimator.ofFloat(new float[]{this.mOffset, scrollY});
+        ValueAnimator animator = ValueAnimator.ofFloat(this.mOffset, scrollY);
         animator.addUpdateListener(new AnimatorUpdateListener() {
             public void onAnimationUpdate(ValueAnimator animation) {
                 SingleLrcView.this.mOffset = (Float)animation.getAnimatedValue();
@@ -335,8 +335,8 @@ public class SingleLrcView extends View {
     }
 
     private float getTextHeight(int linePosition) {
-        String text = ((Lrc)this.mLrcData.get(linePosition)).getText();
-        StaticLayout staticLayout = (StaticLayout)this.mStaticLayoutHashMap.get(text);
+        String text = this.mLrcData.get(linePosition).getText();
+        StaticLayout staticLayout = this.mStaticLayoutHashMap.get(text);
         if (staticLayout == null) {
             this.mTextPaint.setTextSize(this.mLrcTextSize);
             staticLayout = new StaticLayout(text, this.mTextPaint, this.getLrcWidth(), Alignment.ALIGN_NORMAL, 1.0F, 0.0F, false);
@@ -423,7 +423,7 @@ public class SingleLrcView extends View {
             this.isShowTimeIndicator = false;
             this.invalidateView();
             if (this.mOnPlayIndicatorLineListener != null) {
-                this.mOnPlayIndicatorLineListener.onPlay(((Lrc)this.mLrcData.get(this.getIndicatePosition())).getTime(), ((Lrc)this.mLrcData.get(this.getIndicatePosition())).getText());
+                this.mOnPlayIndicatorLineListener.onPlay(this.mLrcData.get(this.getIndicatePosition()).getTime(), this.mLrcData.get(this.getIndicatePosition()).getText());
             }
         }
 

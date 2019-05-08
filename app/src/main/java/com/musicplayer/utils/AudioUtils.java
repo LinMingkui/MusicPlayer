@@ -64,11 +64,12 @@ public class AudioUtils {
                     song.setYear("未知");
                 }
                 // 歌曲格式
-                if ("audio/mpeg".equals(cursor.getString(7).trim())) {
-                    song.setType("mp3");
-                } else if ("audio/x-ms-wma".equals(cursor.getString(7).trim())) {
-                    song.setType("wma");
-                }
+//                if ("audio/mpeg".equals(cursor.getString(7).trim())) {
+//                    song.setType("mp3");
+//                } else if ("audio/x-ms-wma".equals(cursor.getString(7).trim())) {
+//                    song.setType("wma");
+//                }
+                song.setType(Variate.SONG_TYPE_LOCAL);
                 // 文件大小
                 if (cursor.getString(8) != null) {
                     float size = cursor.getInt(8) / 1024f / 1024f;
@@ -120,11 +121,12 @@ public class AudioUtils {
                 song.setSinger("未知");
             }
             song.setDuration(Integer.parseInt(mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)));
-            if ("audio/mpeg".equals(mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE))) {
-                song.setType("mp3");
-            } else if ("audio/x-ms-wma".equals(mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE))) {
-                song.setType("wma");
-            }
+//            if ("audio/mpeg".equals(mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE))) {
+//                song.setType("mp3");
+//            } else if ("audio/x-ms-wma".equals(mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE))) {
+//                song.setType("wma");
+//            }
+            song.setType(Variate.SONG_TYPE_LOCAL);
             if (mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_YEAR) != null) {
                 song.setYear(mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_YEAR));
             } else {

@@ -54,13 +54,11 @@
                 app:tabTextColor="@color/hint">
 
                 <android.support.design.widget.TabItem
-                    android:id="@+id/tab_item_my"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="我的" />
 
                 <android.support.design.widget.TabItem
-                    android:id="@+id/tab_item_library"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="乐库" />
@@ -102,7 +100,6 @@
 
     <!--左侧滑栏内容-->
     <android.support.design.widget.NavigationView
-        android:id="@+id/nav_view"
         android:layout_width="300dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"

@@ -3,11 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.fragment.WYYSearchListFragment">
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="网易云"/>
+    tools:context=".ui.fragment.QQSearchListFragment">
+
     <TextView
         android:id="@+id/tv_no_result_hint"
         android:layout_width="wrap_content"
@@ -15,13 +12,31 @@
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="50dp"
         android:text="未找到相关内容"
-        android:visibility="visible" />
+        android:visibility="gone"
+        android:textColor="@color/title"/>
 
-    <ListView
-        android:id="@+id/lv_search"
+    <com.musicplayer.ui.widget.LoadMoreListView
+        android:id="@+id/lmlv"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:dividerHeight="0.5dp" />
+        android:dividerHeight="0.5dp"/>
 
+    <LinearLayout
+        android:id="@+id/ll_loading"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_gravity="center"
+        android:visibility="gone">
+        <ProgressBar
+            style="@android:style/Widget.ProgressBar.Small"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+        <TextView
+            android:layout_marginLeft="10dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="正在搜索..."/>
+    </LinearLayout>
 </FrameLayout>

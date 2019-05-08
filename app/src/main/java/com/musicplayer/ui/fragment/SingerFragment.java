@@ -1,52 +1,58 @@
 package com.musicplayer.ui.fragment;
 
-import android.net.Uri;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.CardView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.lauzy.freedom.library.Lrc;
-import com.lauzy.freedom.library.LrcHelper;
 import com.musicplayer.R;
-import com.musicplayer.service.PlayService;
 import com.musicplayer.ui.widget.SingleLrcView;
+import com.musicplayer.utils.LrcHelper;
+import com.musicplayer.utils.NetworkUtils;
 import com.musicplayer.utils.Variate;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.util.List;
 
-public class SingerFragment extends Fragment{
+import static com.musicplayer.utils.MethodUtils.savePic;
+
+
+public class SingerFragment extends Fragment {
 
     private static final String ARG_WIDTH_HEIGHT = "wh";
     private static String TAG = "*SingerFragment";
     //歌手图片宽高
     private int wh;
-    //歌词索引
-    private int index;
+    private SharedPreferences preferencesPlayList;
     private boolean run;
-    private OnFragmentInteractionListener mListener;
-
+    private boolean updateLrc = false;
+    private boolean isSaveLrc = false;
+    private boolean isSavePic = false;
     private View view;
     private ImageView imgSinger;
     private CardView cardViewSinger;
-    private TextView textViewLrc;
     private SingleLrcView singleLrcView;
     private List<Lrc> lrc;
-    private PlayService playService;
+    private NetworkUtils networkUtils;
+    private File fileLrc;
+    private File filePic;
 
     public static SingerFragment newInstance(int wh) {
         SingerFragment fragment = new SingerFragment();
         Bundle args = new Bundle();
         args.putInt(ARG_WIDTH_HEIGHT, wh);
-//        args.putBinder(ARG_BINDER,service);
         fragment.setArguments(args);
         return fragment;
     }
@@ -56,18 +62,13 @@ public class SingerFragment extends Fragment{
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
             wh = getArguments().getInt(ARG_WIDTH_HEIGHT);
-//            playService = ((PlayService.PlayBinder) getArguments().getBinder(ARG_BINDER)).getService();
-//            if (playService != null){
-//                playService.setOnProgressListener(this);
-//                playService.setOnPlaySongChangeListener(this);
-//            }
         }
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        view = inflater.inflate(R.layout.fragment_singer,container,false);
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        view = inflater.inflate(R.layout.fragment_singer, container, false);
+        Log.e(TAG, "onCreateView");
         return view;
     }
 
@@ -77,21 +78,39 @@ public class SingerFragment extends Fragment{
 
         initView();
         initLyric();
+        singleLrcView.setEmptyContent("暂无歌词");
+        networkUtils.setOnGetSongInfoListener(song -> {
+            if (isSaveLrc) {
+                Log.e(TAG, "saveLrc");
+                lrc = LrcHelper.parseLrcFromString(song.getLrc());
+                if (getActivity() != null) {
+                    (getActivity()).runOnUiThread(() -> singleLrcView.setLrcData(lrc));
+                }
+                updateLrc = true;
+//                Log.e(TAG, song.getLrc());
+                saveLrc(song.getLrc());
+                isSaveLrc = false;
+            }
+            if (isSavePic) {
+                savePic(getActivity(),song.getSingerUrl(),filePic);
+                isSavePic = false;
+                if (getActivity() != null) {
+                    (getActivity()).runOnUiThread(() -> {
+                        Glide.with(this).load(filePic)
+                                .error(R.mipmap.img_default_singer).into(imgSinger);
+                    });
+                }
+            }
+        });
         ChangeUI changeUI = new ChangeUI();
         changeUI.start();
-//        Bitmap bitmap = BitmapFactory.decodeResource(getResources(),
-//                R.drawable.img_default_play_background_jpg);
-//        bitmap = BitmapUtils.rsBlur(getContext(),bitmap,25);
-//        bitmap = BitmapUtils.rsBlur(getContext(),bitmap,25);
-//        imgPlay.setImageBitmap(bitmap);
     }
 
     private void initView() {
+        preferencesPlayList = getActivity().getSharedPreferences(Variate.playList, Context.MODE_PRIVATE);
+        networkUtils = new NetworkUtils();
         Variate.isInitLyric = true;
         run = true;
-        index = 0;
-
-//        textViewLrc = view.findViewById(R.id.tv_lrc);
         cardViewSinger = view.findViewById(R.id.cardview_singer);
         imgSinger = view.findViewById(R.id.img_singer);
         ViewGroup.LayoutParams params = cardViewSinger.getLayoutParams();
@@ -101,52 +120,76 @@ public class SingerFragment extends Fragment{
         singleLrcView = view.findViewById(R.id.single_lrc_view);
     }
 
-
-//    private String initLyric(){
-//        File file = new File("/sdcard/不要命.lrc");
-//        Log.e(TAG,"file path" + file.getPath());
-//        //从文件读取:
-//        lrc = LrcHelper.parseLrcFromFile(file);
-//        if (lrc.size() == 0){
-//            return null;
-//        }else {
-//            index = 0;
-//            return lrc.get(index).getText();
-//        }
-//    }
-
-//    private String parseLrc(int currentTime){
-//        while (index < lrc.size()) {
-//            long time = lrc.get(index).getTime();
-//            if (index == lrc.size()-1){
-//                return lrc.get(lrc.size()-1).getText();
-//            }else if(time >= currentTime && time < lrc.get(index + 1).getTime()){
-//                return lrc.get(index).getText();
-//            }else {
-//                index ++;
-//            }
-//        }
-//        return lrc.get(lrc.size()-1).getText();
-//    }
-
-    private void initLyric(){
-//        String uriStr = "android.resource://" + context.getPackageName() + "/"+R.raw.lyric;
-//        Uri uri=Uri.parse(uriStr);
-//        File file = new File(String.valueOf(uri));
-        File file = new File("/sdcard/不要命.lrc");
-//        Log.e(TAG,"file path" + file.getPath());
-        //从文件读取:
-        lrc = LrcHelper.parseLrcFromFile(file);
-        //设置歌词数据：
-        singleLrcView.setLrcData(lrc);
+    private void initLyric() {
+        Variate.isInitSingleLyric = false;
+        String path, lrcPath;
+        if (preferencesPlayList.getInt(Variate.keySongType, Variate.SONG_TYPE_LOCAL) == Variate.SONG_TYPE_LOCAL) {
+            path = preferencesPlayList.getString(Variate.keySongUrl, "");
+            Log.e(TAG, "songPath " + path);
+            lrcPath = new StringBuilder(Variate.LRC_PATH)
+                    .append('/').append(path.substring(path.lastIndexOf('/'), path.lastIndexOf('.')))
+                    .append(".lrc").toString();
+        } else {
+            String songName = preferencesPlayList.getString(Variate.keySongName, "");
+            String singer = preferencesPlayList.getString(Variate.keySinger, "");
+            singer = singer.replace('/', ' ');
+            lrcPath = new StringBuilder(Variate.LRC_PATH).append('/').append(singer).append(" - ")
+                    .append(songName).append(".lrc").toString();
+        }
+        Log.e(TAG, "lrcPath " + lrcPath);
+        path = preferencesPlayList.getString(Variate.keySinger, "").replace('/', ' ');
+        String picPath = new StringBuffer().append(Variate.PIC_PATH)
+                .append('/').append(path)
+                .toString();
+        Log.e(TAG, "picPath " + picPath);
+        fileLrc = new File(lrcPath);
+        if (fileLrc.exists()) {
+            lrc = LrcHelper.parseLrcFromFile(fileLrc);
+            singleLrcView.setLrcData(lrc);
+            updateLrc = true;
+        } else {
+            isSaveLrc = true;
+        }
+        filePic = new File(picPath);
+        if (filePic.exists()) {
+            Glide.with(this).load(filePic)
+                    .error(R.mipmap.img_default_singer).into(imgSinger);
+        } else {
+            isSavePic = true;
+        }
+        if (isSaveLrc || isSavePic) {
+            String keyWord = new StringBuilder(preferencesPlayList.getString(Variate.keySinger,"")
+                        .replace('/',' ')).append(" ")
+                        .append(preferencesPlayList.getString(Variate.keySongName,"")).toString();
+            if (!keyWord.equals("")) {
+                networkUtils.getSongInfo(keyWord, "qq", Variate.FILTER_NAME);
+            }
+        }
     }
-    private class ChangeUI extends Thread{
+
+    private void saveLrc(String str) {
+        try {
+            File file = new File(Variate.LRC_PATH);
+            if (!file.exists()) {
+                file.mkdir();
+            }
+            FileWriter fw = new FileWriter(fileLrc.getPath());
+            fw.flush();
+            fw.write(str);
+            fw.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private class ChangeUI extends Thread {
         @Override
         public void run() {
-            while (run){
-                if (Variate.isInitSingleLyric){
+            while (run) {
+                if (Variate.isInitSingleLyric) {
                     handler.sendEmptyMessage(2);
-                }else {
+                    updateLrc = false;
+                } else if (updateLrc) {
                     handler.sendEmptyMessage(1);
                 }
                 try {
@@ -161,55 +204,21 @@ public class SingerFragment extends Fragment{
     private Handler handler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message msg) {
-            switch (msg.what){
+            switch (msg.what) {
                 case 1:
-//                    Log.e(TAG,parseLrc(Variate.playProgress));
-//                    textViewLrc.setText(parseLrc(Variate.playProgress));
                     singleLrcView.updateTime(Variate.playProgress);
                     break;
                 case 2:
-//                    Log.e(TAG,initLyric());
                     initLyric();
-                    Variate.isInitSingleLyric = false;
                     break;
             }
             return false;
         }
     });
 
-
-    // TODO: Rename method, update argument and hook method into UI event
-    public void onButtonPressed(Uri uri) {
-        if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
-        }
-    }
-
-//    @Override
-//    public void onAttach(Context context) {
-//        super.onAttach(context);
-//        if (context instanceof OnFragmentInteractionListener) {
-//            mListener = (OnFragmentInteractionListener) context;
-//        } else {
-//            throw new RuntimeException(context.toString()
-//                    + " must implement OnFragmentInteractionListener");
-//        }
-//    }
-
     @Override
     public void onDetach() {
         super.onDetach();
-        mListener = null;
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
         run = false;
-    }
-
-    public interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        void onFragmentInteraction(Uri uri);
     }
 }

@@ -87,7 +87,7 @@ public class NetworkSearchActivity extends BaseActivity implements View.OnClickL
         imgBack.setOnClickListener(this);
         imgSearch.setOnClickListener(this);
 
-        mTitles = new String[]{"QQ音乐", "酷狗音乐", "网易云音乐"};
+        mTitles = new String[]{"QQ音乐", "酷狗音乐", " 网易云音乐"};
         qqFragment = new QQSearchListFragment();
         kgFragment = new KGSearchListFragment();
         wyyFragmnt = new WYYSearchListFragment();
@@ -123,8 +123,14 @@ public class NetworkSearchActivity extends BaseActivity implements View.OnClickL
         viewPager.setCurrentItem(item);
     }
     @Override
-    protected void onRestart() {
-        super.onRestart();
+    protected void onStart() {
+        super.onStart();
         playBarLayout.mBindService(mContext);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        playBarLayout.mUnBindService(mContext);
     }
 }

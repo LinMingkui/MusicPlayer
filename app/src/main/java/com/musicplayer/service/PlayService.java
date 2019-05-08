@@ -13,27 +13,40 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
+import android.provider.MediaStore;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.widget.RemoteViews;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.Target;
 import com.musicplayer.R;
 import com.musicplayer.database.DataBase;
 import com.musicplayer.ui.activity.PlayActivity;
 import com.musicplayer.utils.MyApplication;
+import com.musicplayer.utils.NetworkUtils;
+import com.musicplayer.utils.ToastUtils;
 import com.musicplayer.utils.Variate;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.concurrent.ExecutionException;
 
-import static com.musicplayer.utils.MethodUtils.addFavorite;
+import static com.musicplayer.utils.MethodUtils.addPlaySongToTable;
 import static com.musicplayer.utils.MethodUtils.addSong;
+import static com.musicplayer.utils.MethodUtils.addToFavorite;
 import static com.musicplayer.utils.MethodUtils.getSqlBaseOrder;
+import static com.musicplayer.utils.MethodUtils.savePic;
 import static com.musicplayer.utils.MethodUtils.setPlayMessage;
+import static com.musicplayer.utils.Song.getTypeByInt;
 
 public class PlayService extends Service {
 
@@ -42,7 +55,8 @@ public class PlayService extends Service {
     private OnPlaySongChangeListener onPlaySongChangeListener;
     private NotificationReceiver receiver;
     private static PendingIntent favoritePI, prevPI, playPI, nextPI, lrcPI, closePI, notificationPI;
-
+    private static Uri uri;
+    private NetworkUtils networkUtils;
     private Context context = this;
     private DataBase dataBase;
     private static SQLiteDatabase db;
@@ -58,53 +72,126 @@ public class PlayService extends Service {
     private String tableName;
     private static int position;
     private static String TAG = "*PlayService";
+    private static Notification notification;
 
     public void onCreate() {
         super.onCreate();
         initReceiver();
+        networkUtils = new NetworkUtils();
         preferencesPlayList = getSharedPreferences(Variate.playList, MODE_PRIVATE);
         editorPlayList = preferencesPlayList.edit();
+        editorPlayList.apply();
         preferencesSet = getSharedPreferences(Variate.set, MODE_PRIVATE);
         editorSet = preferencesSet.edit();
+        editorSet.apply();
         dataBase = new DataBase(this, Variate.dataBaseName,
                 null, 1);
         db = dataBase.getWritableDatabase();
         try {
             mediaPlayer = new MediaPlayer();
-        }catch (Exception e){
-            Log.e(TAG,e.toString());
+        } catch (Exception e) {
+            Log.e(TAG, e.toString());
         }
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        isSend = false;
         tableName = preferencesPlayList.getString(Variate.keyTableName, "")
                 .isEmpty() ? Variate.localSongListTable :
                 preferencesPlayList.getString(Variate.keyTableName, "");
         Log.e(TAG, tableName);
         position = preferencesPlayList.getInt("position", 0);
-        Log.e(TAG, String.valueOf(position));
+        Log.e(TAG, "position " + position);
         String sql = getSqlBaseOrder(tableName, preferencesSet);
         cursor = db.rawQuery(sql, null);
         if (cursor.getCount() != 0) {
-            mediaPlayer.setOnPreparedListener(mp -> {
-                play();
-                insertToRecentlyList();
-                showNotification(context,isPlay);
-                isSend = true;
-                Variate.isInitLyric = true;
-                Variate.isInitSingleLyric = true;
-            });
-            mediaPlayer.setOnCompletionListener(mp -> {
-                isSend = false;
-                Log.e(TAG, "setOnCompletionListener");
-                nextSong();
-            });
             cursor.moveToPosition(position);
-            initMediaPlayer();
-            Variate.isFistPlay = false;
-            new sentProgressThread().start();
         }
+        if (intent.getBooleanExtra(Variate.keyIsLocal, true)) {
+            if (cursor.getCount() != 0) {
+                mediaPlayer.setOnCompletionListener(mp -> {
+                    isSend = false;
+                    Log.e(TAG, "setOnCompletionListener");
+                    nextSong();
+                });
+                initMediaPlayer();
+            }
+        } else {
+            try {
+                mediaPlayer.reset();
+                mediaPlayer.setDataSource(Variate.song.getSongUrl());
+                editorPlayList.putString(Variate.keySongName, Variate.song.getSongName());
+                editorPlayList.putString(Variate.keySinger, Variate.song.getSinger());
+                editorPlayList.putString(Variate.keySongUrl, "");
+                editorPlayList.putString(Variate.keySongMid, Variate.song.getSongMid());
+                editorPlayList.putInt(Variate.keySongType, Variate.song.getType());
+                editorPlayList.apply();
+                mediaPlayer.prepareAsync();
+                mediaPlayer.setOnCompletionListener(mp -> {
+                    isSend = false;
+                    Log.e(TAG, "setOnCompletionListener");
+                    if (preferencesSet.getInt(Variate.keyPlayMode, Variate.ORDER) == Variate.SINGLE || cursor.getCount() == 0) {
+                        mediaPlayer.reset();
+                        try {
+                            mediaPlayer.setDataSource(Variate.song.getSongUrl());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        mediaPlayer.prepareAsync();
+                    } else if (cursor.getCount() != 0) {
+                        nextSong();
+                    }
+                });
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        mediaPlayer.setOnPreparedListener(mp -> {
+            play();
+            insertToRecentlyList();
+            updateNotification();
+            if (Variate.isFistPlay) {
+                startForeground(1, notification);
+                Variate.isFistPlay = false;
+            }
+//            showNotification(context, isPlay);
+            isSend = true;
+            Variate.isInitLyric = true;
+            Variate.isInitSingleLyric = true;
+            if (onPlaySongChangeListener != null) {
+                onPlaySongChangeListener.OnPlaySongChange();
+            }
+        });
+        mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+            if (what == -38 && extra == 0) {
+                initMediaPlayer();
+                return true;
+            }
+            return false;
+        });
+        networkUtils.setOnGetSongInfoListener(song -> {
+            try {
+                Log.e(TAG, "networkUtilsPic singerUrl " + song.getSingerUrl());
+                Bitmap bitmap = Glide.with(context).asBitmap().load(song.getSingerUrl())
+                        .into(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL).get();
+                if (bitmap != null) {
+                    Log.e(TAG, "networkUtilsPic bitmap != null");
+                    uri = Uri.parse(MediaStore.Images.Media.insertImage(getContentResolver(),
+                            bitmap, null, null));
+                    Log.e(TAG, "networkUtilsPic uri.getPath()" + uri.getPath());
+                }
+                File file = new File(new StringBuilder(preferencesPlayList.getString(Variate.keySinger, ""))
+                        .append(' ').append(preferencesPlayList.getString(Variate.keySongName, "")).toString());
+                savePic(context, song.getSingerUrl(), file);
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            showNotification(context, isPlay());
+        });
+        new sentProgressThread().start();
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -126,7 +213,7 @@ public class PlayService extends Service {
             }
         }
         isPlay = isPlay();
-        showNotification(context,isPlay);
+        showNotification(context, isPlay);
     }
 
     public void pause() {
@@ -137,7 +224,7 @@ public class PlayService extends Service {
             }
         }
         isPlay = isPlay();
-        showNotification(context,isPlay);
+        showNotification(context, isPlay);
     }
 
     public boolean isPlay() {
@@ -145,11 +232,11 @@ public class PlayService extends Service {
             boolean b;
             try {
                 b = mediaPlayer.isPlaying();
-            }catch (IllegalStateException e){
+            } catch (IllegalStateException e) {
                 b = false;
             }
             return b;
-        }else {
+        } else {
             return false;
         }
     }
@@ -163,29 +250,67 @@ public class PlayService extends Service {
     public void initMediaPlayer() {
         isSend = false;
         mediaPlayer.reset();
-        try {
-            mediaPlayer.setDataSource(cursor.getString(cursor.getColumnIndex(Variate.keySongUrl)));
-        } catch (IOException e) {
-            e.printStackTrace();
+        setPlayMessage(editorPlayList, cursor, tableName, position);
+
+        int type = cursor.getInt(cursor.getColumnIndex(Variate.keySongType));
+        if (type == Variate.SONG_TYPE_LOCAL) {
+            try {
+                mediaPlayer.setDataSource(cursor.getString(cursor.getColumnIndex(Variate.keySongUrl)));
+                mediaPlayer.prepareAsync();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            String mid = cursor.getString(cursor.getColumnIndex(Variate.keySongMid));
+            String SType = getTypeByInt(type);
+            NetworkUtils networkUtils = new NetworkUtils();
+            networkUtils.getSongInfo(mid, SType, Variate.FILTER_ID);
+            networkUtils.setOnGetSongInfoListener(song -> {
+                try {
+                    mediaPlayer.setDataSource(song.getSongUrl());
+                    Log.e(TAG, song.getSongUrl());
+                    mediaPlayer.prepareAsync();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (IllegalStateException e) {
+                    e.printStackTrace();
+                }
+            });
         }
-        mediaPlayer.prepareAsync();
         if (onPlaySongChangeListener != null) {
-            onPlaySongChangeListener.OnPlaySongChange(cursor);
+            onPlaySongChangeListener.OnPlaySongChange();
         }
     }
 
-    public int getProgress(){
-        if (mediaPlayer != null){
+    private void updateNotification() {
+        StringBuilder builder = new StringBuilder(Variate.PIC_PATH).append('/')
+                .append(preferencesPlayList.getString(Variate.keySinger, "").replace('/', ' '));
+        File file = new File(builder.toString());
+        if (file.exists()) {
+            Bitmap bitmap = BitmapFactory.decodeFile(file.getPath());
+            uri = Uri.parse(MediaStore.Images.Media.insertImage(getContentResolver(),
+                    bitmap, null, null));
+            showNotification(context, isPlay());
+        } else {
+            builder = new StringBuilder(preferencesPlayList.getString(Variate.keySinger, ""))
+                    .append(' ').append(preferencesPlayList.getString(Variate.keySongName, ""));
+            networkUtils.getSongInfo(builder.toString(), "qq", Variate.FILTER_NAME);
+        }
+
+    }
+
+    public int getProgress() {
+        if (mediaPlayer != null) {
             return mediaPlayer.getCurrentPosition();
-        }else {
+        } else {
             return 0;
         }
     }
 
-    public int getDuration(){
-        if (mediaPlayer != null){
+    public int getDuration() {
+        if (mediaPlayer != null) {
             return mediaPlayer.getDuration();
-        }else {
+        } else {
             return 0;
         }
     }
@@ -193,57 +318,57 @@ public class PlayService extends Service {
     //上一曲
     public void prevSong() {
         onPlayStateChangeListener.OnPlayStateChange(mediaPlayer.isPlaying());
-        int playMode = preferencesSet.getInt(Variate.keyPlayMode, 0);
-        if (playMode == Variate.ORDER) {
-            //顺序播放
-            if (cursor.isFirst()) {
-                cursor.moveToLast();
-                position = cursor.getCount() - 1;
-            } else {
-                cursor.moveToPosition(--position);
+        if (cursor.getCount() == 0) {
+            ToastUtils.show(context, "您必须先播放一次本地列表的音乐");
+        } else {
+            int playMode = preferencesSet.getInt(Variate.keyPlayMode, Variate.ORDER);
+            if (playMode == Variate.ORDER) {
+                //顺序播放
+                if (cursor.isFirst()) {
+                    cursor.moveToLast();
+                    position = cursor.getCount() - 1;
+                } else {
+                    cursor.moveToPosition(--position);
+                }
+            } else if (playMode == Variate.RANDOM) {
+                //随机播放
+                do {
+                    position = (int) (Math.random() * cursor.getCount());
+                } while (position == cursor.getCount());
+                Log.e(TAG, "random position:" + position);
+                cursor.moveToPosition(position);
             }
-        } else if (playMode == Variate.RANDOM) {
-            //随机播放
-            do {
-                position = (int) (Math.random() * cursor.getCount());
-            } while (position == cursor.getCount());
-            Log.e(TAG, "random position:" + position);
-            cursor.moveToPosition(position);
+            Log.e(TAG, "上一曲" + position);
+            initMediaPlayer();
         }
-        setPlayMessage(editorPlayList, cursor, tableName, position);
-        insertToRecentlyList();
-        sendBroadcast(new Intent(Variate.ACTION_PREV));
-        Log.e(TAG, "上一曲" + position);
-        onPlaySongChangeListener.OnPlaySongChange(cursor);
-        initMediaPlayer();
     }
 
     //下一曲
     public void nextSong() {
         onPlayStateChangeListener.OnPlayStateChange(mediaPlayer.isPlaying());
-        int playMode = preferencesSet.getInt(Variate.keyPlayMode, 0);
-        if (playMode == Variate.ORDER) {
-            //顺序播放
-            if (cursor.isLast()) {
-                cursor.moveToFirst();
-                position = 0;
-            } else {
-                cursor.moveToPosition(++position);
+        if (cursor.getCount() == 0) {
+            ToastUtils.show(context, "您必须先播放一次本地列表的音乐");
+        } else {
+            int playMode = preferencesSet.getInt(Variate.keyPlayMode, Variate.ORDER);
+            if (playMode == Variate.ORDER) {
+                //顺序播放
+                if (cursor.isLast()) {
+                    cursor.moveToFirst();
+                    position = 0;
+                } else {
+                    cursor.moveToPosition(++position);
+                }
+            } else if (playMode == Variate.RANDOM) {
+                //随机播放
+                do {
+                    position = (int) (Math.random() * cursor.getCount());
+                } while (position == cursor.getCount());
+                Log.e(TAG, "random position:" + position);
+                cursor.moveToPosition(position);
             }
-        } else if (playMode == Variate.RANDOM) {
-            //随机播放
-            do {
-                position = (int) (Math.random() * cursor.getCount());
-            } while (position == cursor.getCount());
-            Log.e(TAG, "random position:" + position);
-            cursor.moveToPosition(position);
+            Log.e(TAG, "下一曲" + position);
+            initMediaPlayer();
         }
-        setPlayMessage(editorPlayList, cursor, tableName, position);
-        insertToRecentlyList();
-        sendBroadcast(new Intent(Variate.ACTION_NEXT));
-        Log.e(TAG, "下一曲" + position);
-        onPlaySongChangeListener.OnPlaySongChange(cursor);
-        initMediaPlayer();
     }
 
     //发送进度
@@ -257,12 +382,12 @@ public class PlayService extends Service {
                     }
                     Variate.playProgress = mediaPlayer.getCurrentPosition();
                 }
-                if (Variate.isSetProgress){
+                if (Variate.isSetProgress) {
                     seekTo(Variate.setPlayProgress);
                     Variate.isSetProgress = false;
                 }
                 try {
-                    sleep(200);
+                    sleep(1000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -272,8 +397,9 @@ public class PlayService extends Service {
 
     //添加到最近播放
     private void insertToRecentlyList() {
-        if (!tableName.equals(Variate.recentlySongListTable)) {
-            Cursor recentlyCursor = db.rawQuery("select * from " + Variate.
+        Cursor recentlyCursor;
+        if (preferencesPlayList.getInt(Variate.keySongType, Variate.SONG_TYPE_LOCAL) == Variate.SONG_TYPE_LOCAL) {
+            recentlyCursor = db.rawQuery("select * from " + Variate.
                             recentlySongListTable + " where " + Variate.keySongUrl + " = ?",
                     new String[]{cursor.getString(cursor.getColumnIndex(Variate.keySongUrl))});
             if (recentlyCursor.getCount() != 0) {
@@ -281,8 +407,17 @@ public class PlayService extends Service {
                         new String[]{cursor.getString(cursor.getColumnIndex(Variate.keySongUrl))});
             }
             addSong(db, Variate.recentlySongListTable, cursor);
-            recentlyCursor.close();
+        } else {
+            recentlyCursor = db.rawQuery("select * from " + Variate.
+                            recentlySongListTable + " where " + Variate.keySongMid + " = ?",
+                    new String[]{preferencesPlayList.getString(Variate.keySongMid, "")});
+            if (recentlyCursor.getCount() != 0) {
+                db.delete(Variate.recentlySongListTable, Variate.keySongMid + " = ?",
+                        new String[]{preferencesPlayList.getString(Variate.keySongMid, "")});
+            }
+            addPlaySongToTable(db, preferencesPlayList, Variate.recentlySongListTable);
         }
+        recentlyCursor.close();
     }
 
     //歌曲进度接口
@@ -305,7 +440,7 @@ public class PlayService extends Service {
 
     //播放歌曲改变接口
     public interface OnPlaySongChangeListener {
-        void OnPlaySongChange(Cursor cursor);
+        void OnPlaySongChange();
     }
 
     public void setOnPlaySongChangeListener(OnPlaySongChangeListener listener) {
@@ -360,7 +495,7 @@ public class PlayService extends Service {
     }
 
     //显示通知
-    public static void showNotification(Context context,boolean isPlay) {
+    public static void showNotification(Context context, boolean isPlay) {
         RemoteViews viewNormal = new RemoteViews(context.getPackageName(), R.layout.layout_play_notification_normal);
         RemoteViews viewBig = new RemoteViews(context.getPackageName(), R.layout.layout_play_notification_big);
 
@@ -379,24 +514,23 @@ public class PlayService extends Service {
         viewNormal.setOnClickPendingIntent(R.id.img_close, closePI);
         viewNormal.setOnClickPendingIntent(R.id.linear_layout_notification, notificationPI);
 
-
         String title, singer;
-        if (cursor != null) {
-            title = cursor.getString(cursor.getColumnIndex(Variate.keySongName));
-            singer = cursor.getString(cursor.getColumnIndex(Variate.keySinger));
-        } else {
-            title = preferencesPlayList.getString(Variate.keySongName, Variate.unKnown);
-            singer = preferencesPlayList.getString(Variate.keySinger, Variate.unKnown);
-        }
+        title = preferencesPlayList.getString(Variate.keySongName, Variate.unKnown);
+        singer = preferencesPlayList.getString(Variate.keySinger, Variate.unKnown);
         viewBig.setTextViewText(R.id.tv_song_name, title);
         viewBig.setTextViewText(R.id.tv_singer, singer);
         viewNormal.setTextViewText(R.id.tv_song_name, title);
         viewNormal.setTextViewText(R.id.tv_singer, singer);
+        if (uri != null) {
+            viewBig.setImageViewUri(R.id.img_singer, uri);
+            viewNormal.setImageViewUri(R.id.img_singer, uri);
+//            viewBig.setimag
+        }
 
         Cursor cursorFavorite = db.rawQuery("select " + Variate.keySongId + " from "
                         + Variate.favoriteSongListTable
                         + " where " + Variate.keySongUrl + " = ?",
-                new String[]{cursor.getString(cursor.getColumnIndex(Variate.keySongUrl))});
+                new String[]{preferencesPlayList.getString(Variate.keySongUrl, Variate.unKnown)});
         if (cursorFavorite.getCount() != 0) {
             cursorFavorite.close();
             viewBig.setImageViewResource(R.id.img_favorite,
@@ -425,16 +559,16 @@ public class PlayService extends Service {
                 Log.e(TAG, "createNotificationChannel");
             }
         }
-        Notification notification = new NotificationCompat.Builder(context, "PLAY")
+        notification = new NotificationCompat.Builder(context, "PLAY")
                 .setContentTitle("") // 创建通知的标题
                 .setContentText("") // 创建通知的内容
                 .setSmallIcon(R.mipmap.ic_launcher) // 创建通知的小图标
                 .setContent(viewNormal)
-                .setCustomBigContentView(viewBig) // 通过设置RemoteViews对象来设置通知的布局，这里我们设置为自定义布局
+                .setCustomBigContentView(viewBig)// 通过设置RemoteViews对象来设置通知的布局，这里我们设置为自定义布局
                 .setOngoing(true)//无法划去
                 .build();
         notificationManager.notify(1, notification);
-
+        // 前台服务
     }
 
     //通知点击事件
@@ -448,11 +582,12 @@ public class PlayService extends Service {
                 switch (id) {
                     case Variate.ID_FAVORITE:
                         Log.e(TAG, "通知栏收藏");
-                        addFavorite(context, db, cursor);
+//                        addFavorite(context, db, cursor);
+                        addToFavorite(context, db, preferencesPlayList);
                         Variate.isSetFavoriteIcon = true;
-                        showNotification(context,isPlay());
-                        if (onPlaySongChangeListener != null){
-                            onPlaySongChangeListener.OnPlaySongChange(cursor);
+                        showNotification(context, isPlay());
+                        if (onPlaySongChangeListener != null) {
+                            onPlaySongChangeListener.OnPlaySongChange();
                         }
                         break;
                     case Variate.ID_PREV:
@@ -461,12 +596,12 @@ public class PlayService extends Service {
                         break;
                     case Variate.ID_PLAY_OR_PAUSE:
                         Log.e(TAG, "通知播放暂停");
-                        if (isPlay()){
+                        if (isPlay()) {
                             pause();
-                        }else {
+                        } else {
                             play();
                         }
-                        showNotification(context,isPlay);
+                        showNotification(context, isPlay);
                         break;
                     case Variate.ID_NEXT:
                         Log.e(TAG, "通知栏下一曲");
@@ -478,9 +613,10 @@ public class PlayService extends Service {
                         break;
                     case Variate.ID_CLOSE:
                         Log.e(TAG, "通知关闭");
-                        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-                        manager.cancelAll();
+//                        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+//                        manager.cancelAll();
 //                        collapseStatusBar();
+                        stopForeground(true);
                         MyApplication.getInstance().AppExit();
                         break;
                     case Variate.ID_NOTIFICATION:
@@ -507,13 +643,12 @@ public class PlayService extends Service {
             String action = intent.getAction();
             if (action.equals(Variate.ACTION_UPDATE)) {
                 Log.e(TAG, "更新通知");
-//                if (!Variate.isFistPlay) {
-                    showNotification(context,isPlay);
-//                }
+                showNotification(context, isPlay);
             }
         }
 
     }
+
     //收起通知
     public void collapseStatusBar() {
         @SuppressLint("WrongConstant")
@@ -521,7 +656,7 @@ public class PlayService extends Service {
 //        Object service = getSystemService(Context.VIBRATOR_SERVICE);
         try {
             Method collapse;
-                collapse = service.getClass().getMethod("collapsePanels");
+            collapse = service.getClass().getMethod("collapsePanels");
             collapse.setAccessible(true);
             collapse.invoke(service);
         } catch (Exception e) {
@@ -537,10 +672,22 @@ public class PlayService extends Service {
             mediaPlayer.release();
         }
         unregisterReceiver(receiver);
-        Variate.isFistPlay = true;
-        Variate.isPlay = false;
-        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        manager.cancelAll();
+//        Variate.isFistPlay = true;
+//        Variate.isPlay = false;
+//        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+////        manager.cancelAll();
+        if (notification != null) {
+            stopForeground(true);
+        }
+        if (dataBase != null) {
+            dataBase.close();
+        }
+        if (db != null) {
+            db.close();
+        }
+        if (cursor != null) {
+            cursor.close();
+        }
         super.onDestroy();
     }
 }

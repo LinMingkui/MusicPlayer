@@ -95,6 +95,9 @@ public class Variate {
     public static final String keySongMenuExpand = "songMenuExpand";
     //播放的音乐是否为本地音乐
     public static final String keyIsLocal = "isLocal";
+    //是否初始化歌词
+    public static final String keyIsInitLocalList = "isInitLocalList";
+
     //根据音乐名升序排序
     public static final int SORT_NAME_ASC = 0;
     //根据音乐名降序排序
@@ -108,9 +111,6 @@ public class Variate {
     //根据添加时间降序排序
     public static final int SORT_TIME_DESC = 5;
 
-    //更新首页歌单数量信息
-    public static final int SORT_COMPLETE = 6;
-
     public static Song song;
     //列表循环
     public static final int ORDER = 0;
@@ -122,21 +122,8 @@ public class Variate {
     //未知歌名或歌手
     public static final String unKnown = "未知";
 
-    //当前音乐长度
-    public static int playDuration = 0;
     //音乐播放进度
     public static int playProgress = 0;
-
-    //是否暂停
-    public static boolean isPause = false;
-    //是否上一曲
-    public static boolean isPrev = false;
-    //是否下一曲
-    public static boolean isNext = false;
-    //是否进入播放控制状态
-    public static boolean isPlayOrPause = false;
-    //是否正在播放
-    public static boolean isPlay = false;
     //是否第一次播放
     public static boolean isFistPlay = true;
     //是否设置播放进度
@@ -145,28 +132,12 @@ public class Variate {
     //设置播放进度
     public static int setPlayProgress = 0;
 
-    //是否更新播放列表播放图标
-    public static boolean isSetListPlayIcon = false;
     //是否更新播放播放页收藏图标
     public static boolean isSetFavoriteIcon = false;
-
-    //是否执行了删除操作
-    public static boolean isDelete = false;
-
-    //是否需要执行position减一操作
-    public static boolean isSubPosition = false;
-
-    //删除位置的position与当前播放的position是否相等
-    public static boolean isEqualPosition = false;
 
     //是否初始化歌词
     public static boolean isInitLyric = false;
     //是否初始化歌词
     public static boolean isInitSingleLyric = false;
-
-    //是否初始化歌词
-    public static String keyIsInitLocalList = "isInitLocalList";
-    //是否更新播放列表
-    public static boolean isUpdatePlayList = false;
 
 }

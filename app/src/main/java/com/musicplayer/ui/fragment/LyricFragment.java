@@ -80,6 +80,7 @@ public class LyricFragment extends Fragment {
             Log.e(TAG, "歌词跳转播放");
             Variate.setPlayProgress = (int) (var1);
             Variate.isSetProgress = true;
+            lrcView.updateTime(var1);
         });
         ChangeUI changeUI = new ChangeUI();
         changeUI.start();

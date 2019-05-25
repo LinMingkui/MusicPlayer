@@ -130,6 +130,8 @@ public class SongLibraryFragment extends Fragment implements View.OnClickListene
                     } else {
                         ToastUtils.show(getActivity(), "请在歌曲详情页面进行此操作");
                     }
+                } else {
+                    ToastUtils.show(getActivity(), "请在歌曲详情页面进行此操作");
                 }
                 break;
         }

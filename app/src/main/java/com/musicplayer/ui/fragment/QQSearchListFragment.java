@@ -78,7 +78,7 @@ public class QQSearchListFragment extends Fragment implements NetworkSongListAda
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
             Log.e(TAG, "keyWord1:" + keyWord);
-            keyWord = getArguments().getString("keyWord");
+            keyWord = getArguments().getString("keyWord") !=null?getArguments().getString("keyWord"):"";
             Log.e(TAG, "keyWord2:" + keyWord);
         }
     }
@@ -105,7 +105,7 @@ public class QQSearchListFragment extends Fragment implements NetworkSongListAda
             songListAdapter = new NetworkSongListAdapter(getActivity(), songList, Variate.SONG_TYPE_QQ);
             songListAdapter.setOnItemMenuClickListener(this);
             listView.setAdapter(songListAdapter);
-        } else if (!keyWord.equals("")) {
+        } else if (!"".equals(keyWord)) {
             linearLayoutLoading.setVisibility(View.VISIBLE);
             synchronized (this) {
                 searchFromQQ(keyWord, page);

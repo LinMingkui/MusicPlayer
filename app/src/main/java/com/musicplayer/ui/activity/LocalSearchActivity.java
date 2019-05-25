@@ -76,7 +76,6 @@ public class LocalSearchActivity extends BaseActivity implements View.OnClickLis
                 songListAdapter.changeData();
                 songListAdapter.notifyDataSetChanged();
             } else {
-//                (new PlayThread(cursorSong, position)).start();
                 db.execSQL("delete from " + Variate.localSearchSongListTable);
                 for (int i = 0; i < cursorSong.getCount(); i++) {
                     cursorSong.moveToPosition(i);
@@ -141,14 +140,10 @@ public class LocalSearchActivity extends BaseActivity implements View.OnClickLis
     }
 
     @Override
-    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-    }
+    public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
 
     @Override
-    public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-    }
+    public void onTextChanged(CharSequence s, int start, int before, int count) { }
 
     @Override
     public void afterTextChanged(Editable s) {

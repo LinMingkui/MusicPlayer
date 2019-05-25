@@ -77,7 +77,7 @@ public class KGSearchListFragment extends Fragment implements NetworkSongListAda
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            keyWord = getArguments().getString("keyWord");
+            keyWord = getArguments().getString("keyWord") !=null?getArguments().getString("keyWord"):"";
             Log.e(TAG, "keyWord2:" + keyWord);
         }
     }
@@ -104,7 +104,7 @@ public class KGSearchListFragment extends Fragment implements NetworkSongListAda
             songListAdapter = new NetworkSongListAdapter(getActivity(), songList, Variate.SONG_TYPE_KG);
             songListAdapter.setOnItemMenuClickListener(this);
             listView.setAdapter(songListAdapter);
-        } else if (!keyWord.equals("")) {
+        } else if (!"".equals(keyWord)) {
             linearLayoutLoading.setVisibility(View.VISIBLE);
             synchronized (this) {
                 searchFromKG(keyWord, page);

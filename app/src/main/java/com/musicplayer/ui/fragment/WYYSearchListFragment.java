@@ -75,7 +75,7 @@ public class WYYSearchListFragment extends Fragment implements AdapterView.OnIte
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            keyWord = getArguments().getString("keyWord");
+            keyWord = getArguments().getString("keyWord") !=null?getArguments().getString("keyWord"):"";
         }
     }
 
@@ -100,7 +100,7 @@ public class WYYSearchListFragment extends Fragment implements AdapterView.OnIte
             songListAdapter = new NetworkSongListAdapter(getActivity(), songList, Variate.SONG_TYPE_WYY);
             songListAdapter.setOnItemMenuClickListener(this);
             listView.setAdapter(songListAdapter);
-        } else if (!keyWord.equals("")) {
+        } else if (!"".equals(keyWord)) {
             linearLayoutLoading.setVisibility(View.VISIBLE);
             synchronized (this) {
                 searchFromWYY(keyWord, page);

@@ -11,6 +11,7 @@ import android.support.v7.view.menu.MenuPopupHelper;
 import android.support.v7.widget.PopupMenu;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -92,8 +93,8 @@ public class LocalSongActivity extends BaseActivity implements View.OnClickListe
         //音乐列表点击事件
         lvSong.setOnItemClickListener((parent, view, position, id) -> {
             cursorSong.moveToPosition(position);
-            startPlay(mContext, editorPlayList, Variate.localSongListTable, position);
             setPlayMessage(editorPlayList, cursorSong, Variate.localSongListTable, position);
+            startPlay(mContext, editorPlayList, Variate.localSongListTable, position);
             songListAdapter.changeData();
             songListAdapter.notifyDataSetChanged();
         });

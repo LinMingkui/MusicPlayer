@@ -258,6 +258,7 @@ public class MyFragment extends Fragment implements View.OnClickListener {
                     Log.e("****", editSongMenuName.getText().toString());
                     values.put(Variate.keySongMenuName, editSongMenuName.getText().toString());
                     values.put(Variate.keySongNumber, 0);
+                    values.put(Variate.keySinger, "默认");
                     db.insert(Variate.songMenuNameTable,
                             null, values);
                     dialog.dismiss();

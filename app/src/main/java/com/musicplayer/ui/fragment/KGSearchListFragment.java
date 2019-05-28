@@ -26,6 +26,7 @@ import com.musicplayer.ui.widget.LoadMoreListView;
 import com.musicplayer.utils.DownloadUtils;
 import com.musicplayer.utils.NetworkUtils;
 import com.musicplayer.utils.Song;
+import com.musicplayer.utils.UnicodeUtils;
 import com.musicplayer.utils.Variate;
 
 import org.json.JSONArray;
@@ -38,6 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -111,6 +113,94 @@ public class KGSearchListFragment extends Fragment implements NetworkSongListAda
             }
         }
     }
+
+
+//    private void searchFromKG(String keyWord, int page) {
+//        new Thread(() -> {
+////            String QQMid = "002ReDzj13wRz0";
+//            OkHttpClient client = new OkHttpClient.Builder()
+//                    .connectTimeout(10, TimeUnit.SECONDS).build();
+//            FormBody formBody = new FormBody.Builder()
+//                    .add("input", keyWord)
+//                    .add("filter", "name")
+//                    .add("type", "kugou")
+//                    .add("page", String.valueOf(page))
+//                    .build();
+//            Request request = new Request.Builder()
+//                    .url("http://music.wandhi.com/")
+//                    .addHeader("X-Requested-With", "XMLHttpRequest")
+//                    .post(formBody)
+//                    .build();
+//            try {
+//                Response response = client.newCall(request).execute();
+//                if (response.isSuccessful()) {
+//                    resolveSearchJson(response.body().string());
+//                } else {
+////                    Toast.makeText(getActivity(), "连接失败", Toast.LENGTH_SHORT).show();
+//                }
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }).start();
+//    }
+//
+//    private void resolveSearchJson(String json) {
+////        Log.e(TAG, json);
+//        json = UnicodeUtils.unicodeToString(json);
+////                    jsonSongInfo = jsonSongInfo.replace("\\n","");
+////                    jsonSongInfo = jsonSongInfo.replace("\\","");
+////                    Log.e("NetworkUtils.getSong",jsonSongInfo);
+//        try {
+//            JSONArray array = null;
+//            JSONObject object = null;
+//            Song song = null;
+//            array = new JSONObject(json).getJSONArray("data");
+//            if (array.length() < 10) {
+//                isOver = true;
+//            } else {
+//                page++;
+//            }
+//            for (int i = 0; i < array.length(); i++) {
+//                object = array.getJSONObject(i);
+//                if (!object.getString("url").replace("\\", "").equals("null")) {
+//                    song = new Song();
+//                    song.setSongName(object.getString("title"));
+//                    song.setSinger(object.getString("author").equals("")
+//                            ? "群星" : object.getString("author"));
+//                    song.setSongUrl(object.getString("url").replace("\\", ""));
+//                    song.setSingerUrl(object.getString("pic").replace("\\", ""));
+//                    song.setLrc(object.getString("lrc"));
+//                    song.setType(Variate.SONG_TYPE_KG);
+//                    song.setSongMid(object.getString("songid"));
+//                    songList.add(song);
+//                }
+//            }
+//        } catch (JSONException e) {
+//            e.printStackTrace();
+//        }
+//        if (getActivity() != null) {
+//            getActivity().runOnUiThread(() -> {
+//                if (songList.size() == 0) {
+//                    tvNoResultHint.setVisibility(View.VISIBLE);
+//                    linearLayoutLoading.setVisibility(View.GONE);
+//                    listView.setVisibility(View.GONE);
+//                } else {
+//                    linearLayoutLoading.setVisibility(View.GONE);
+//                    tvNoResultHint.setVisibility(View.GONE);
+//                    listView.setVisibility(View.VISIBLE);
+//                    if (songListAdapter == null) {
+//                        songListAdapter = new NetworkSongListAdapter(getActivity(), songList, Variate.SONG_TYPE_WYY);
+//                        songListAdapter.setOnItemMenuClickListener(this);
+//                        listView.setAdapter(songListAdapter);
+//                    } else {
+//                        songListAdapter.notifyDataSetChanged();
+//                        listView.setLoadCompleted();
+//                    }
+//                }
+//            });
+//        }
+//    }
+
 
     private void searchFromKG(String keyWord, int page) {
         new Thread(() -> {

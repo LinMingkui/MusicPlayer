@@ -19,6 +19,7 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Build;
+import android.os.Environment;
 import android.os.IBinder;
 import android.provider.MediaStore;
 import android.support.v4.app.NotificationCompat;
@@ -177,13 +178,18 @@ public class PlayService extends Service {
                         .into(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL).get();
                 if (bitmap != null) {
                     Log.e(TAG, "networkUtilsPic bitmap != null");
-                    uri = Uri.parse(MediaStore.Images.Media.insertImage(getContentResolver(),
-                            bitmap, null, null));
+                    File file = new File(new StringBuilder(Variate.PIC_PATH)
+                            .append('/')
+                            .append(preferencesPlayList.getString(Variate.keySongName, "")
+                                    .replace('/',' '))
+                            .toString());
+                    savePic(context, song.getSingerUrl(), file);
+//                    uri = Uri.parse(MediaStore.Images.Media.insertImage(getContentResolver(),
+//                            bitmap, null, null));
+                    uri = Uri.parse(file.toString());
                     Log.e(TAG, "networkUtilsPic uri.getPath()" + uri.getPath());
                 }
-                File file = new File(new StringBuilder(preferencesPlayList.getString(Variate.keySinger, ""))
-                        .append(' ').append(preferencesPlayList.getString(Variate.keySongName, "")).toString());
-                savePic(context, song.getSingerUrl(), file);
+
             } catch (ExecutionException e) {
                 e.printStackTrace();
             } catch (InterruptedException e) {
@@ -287,9 +293,10 @@ public class PlayService extends Service {
                 .append(preferencesPlayList.getString(Variate.keySinger, "").replace('/', ' '));
         File file = new File(builder.toString());
         if (file.exists()) {
-            Bitmap bitmap = BitmapFactory.decodeFile(file.getPath());
-            uri = Uri.parse(MediaStore.Images.Media.insertImage(getContentResolver(),
-                    bitmap, null, null));
+//            Bitmap bitmap = BitmapFactory.decodeFile(file.getPath());
+//            uri = Uri.parse(MediaStore.Images.Media.insertImage(getContentResolver(),
+//                    bitmap, null, null));
+            uri = Uri.parse(file.toString());
             showNotification(context, isPlay());
         } else {
             builder = new StringBuilder(preferencesPlayList.getString(Variate.keySinger, ""))
@@ -384,6 +391,7 @@ public class PlayService extends Service {
                 }
                 if (Variate.isSetProgress) {
                     seekTo(Variate.setPlayProgress);
+                    Variate.playProgress = mediaPlayer.getCurrentPosition();
                     Variate.isSetProgress = false;
                 }
                 try {

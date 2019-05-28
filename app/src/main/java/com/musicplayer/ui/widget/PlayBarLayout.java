@@ -17,6 +17,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.musicplayer.R;
 import com.musicplayer.service.PlayService;
 import com.musicplayer.ui.activity.PlayActivity;
@@ -194,7 +195,8 @@ public class PlayBarLayout extends LinearLayout implements View.OnClickListener,
                 if (mContext != null) {
                     ((Activity) mContext).runOnUiThread(() -> {
                         if (mContext != null) {
-                            Glide.with(mContext).load(song.getSingerUrl()).error(R.mipmap.img_default_singer).into(imgSinger);
+                            Glide.with(mContext).load(song.getSingerUrl())
+                                    .error(R.mipmap.img_default_singer).into(imgSinger);
                         }
                     });
                 }

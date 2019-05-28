@@ -67,22 +67,28 @@ public class SongMenuAdapter extends BaseAdapter {
                     cursor.getColumnIndex(Variate.keySongMenuName)));
             int number = cursor.getInt(cursor.getColumnIndex(Variate.keySongNumber));
             holder.textViewSongNumber.setText(number + "首");
-            File file = new File(Variate.PIC_PATH, cursor.getString(
-                    cursor.getColumnIndex(Variate.keySinger)).replace('/', ' '));
-            if (file.exists()) {
-                Glide.with(context).load(file).into(holder.imgSinger);
-            } else {
-                NetworkUtils networkUtils = new NetworkUtils();
-                networkUtils.getSongInfo(cursor.getString(cursor.getColumnIndex(Variate.keySinger)),
-                        "qq", Variate.FILTER_NAME);
-                networkUtils.setOnGetSongInfoListener(song -> {
-                    savePic(context, song.getSingerUrl(), file);
-                    ((Activity) context).runOnUiThread(() -> {
-                        Glide.with(context).load(file)
-                                .error(R.mipmap.img_default_singer).into(holder.imgSinger);
-                    });
+            String singer = cursor.getString(cursor.getColumnIndex(Variate.keySinger));
+            if(singer.equals("默认")){
+                holder.imgSinger.setImageResource(R.mipmap.img_default_singer);
+            }else {
+                singer = singer.replace('/', ' ');
 
-                });
+                File file = new File(Variate.PIC_PATH, singer);
+                if (file.exists()) {
+                    Glide.with(context).load(file).into(holder.imgSinger);
+                } else {
+                    NetworkUtils networkUtils = new NetworkUtils();
+                    networkUtils.getSongInfo(cursor.getString(cursor.getColumnIndex(Variate.keySinger)),
+                            "qq", Variate.FILTER_NAME);
+                    networkUtils.setOnGetSongInfoListener(song -> {
+                        savePic(context, song.getSingerUrl(), file);
+                        ((Activity) context).runOnUiThread(() -> {
+                            Glide.with(context).load(file)
+                                    .error(R.mipmap.img_default_singer).into(holder.imgSinger);
+                        });
+
+                    });
+                }
             }
         }
         return convertView;

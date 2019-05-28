@@ -93,7 +93,7 @@ public class LyricFragment extends Fragment {
                 if (Variate.isInitLyric) {
                     handler.sendEmptyMessage(2);
                     updateLrc = false;
-                } else if (updateLrc) {
+                } else if (updateLrc && !Variate.isSetProgress) {
                     handler.sendEmptyMessage(1);
                 }
                 try {

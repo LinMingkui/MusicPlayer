@@ -15,6 +15,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.lauzy.freedom.library.Lrc;
 import com.musicplayer.R;
 import com.musicplayer.ui.widget.SingleLrcView;
@@ -92,7 +93,7 @@ public class SingerFragment extends Fragment {
                 isSaveLrc = false;
             }
             if (isSavePic) {
-                savePic(getActivity(),song.getSingerUrl(),filePic);
+                savePic(getActivity(), song.getSingerUrl(), filePic);
                 isSavePic = false;
                 if (getActivity() != null) {
                     (getActivity()).runOnUiThread(() -> {
@@ -158,9 +159,9 @@ public class SingerFragment extends Fragment {
             isSavePic = true;
         }
         if (isSaveLrc || isSavePic) {
-            String keyWord = new StringBuilder(preferencesPlayList.getString(Variate.keySinger,"")
-                        .replace('/',' ')).append(" ")
-                        .append(preferencesPlayList.getString(Variate.keySongName,"")).toString();
+            String keyWord = new StringBuilder(preferencesPlayList.getString(Variate.keySinger, "")
+                    .replace('/', ' ')).append(" ")
+                    .append(preferencesPlayList.getString(Variate.keySongName, "")).toString();
             if (!keyWord.equals("")) {
                 networkUtils.getSongInfo(keyWord, "qq", Variate.FILTER_NAME);
             }
